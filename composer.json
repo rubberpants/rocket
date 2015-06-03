@@ -1,5 +1,5 @@
 {
-    "name": "rubberpants/rocket",
+    "name": "rubberpants/rocket-queue",
     "description": "Redis PHP Job Queue",
     "keywords": ["redis", "PHP", "queue"],
     "homepage": "http://github.com/rubberpants/Rocket",
