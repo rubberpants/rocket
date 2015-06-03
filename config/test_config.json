@@ -1,8 +1,6 @@
 {
 	"application_name": "test",
-	"redis_connections": [
-		"tcp://127.0.0.1:6379?database=10"
-	],
+	"redis_connections": "tcp://127.0.0.1:6379?database=10",
 	"queues": {
 		"default_min_running_limit": 2,
 		"default_max_running_limit": 4,
