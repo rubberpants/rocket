@@ -46,7 +46,11 @@ class Config implements ConfigInterface
 
             return $matches;
         } elseif ($depth == count($path)-1) {
-            return $data[$path[$depth]];
+            if (array_key_exists($path[$depth], $data)) {
+                return $data[$path[$depth]];
+            } else {
+                return null;
+            }
         } elseif (array_key_exists($path[$depth], $data)) {
             return $this->getValue($data[$path[$depth]], $path, $depth+1);
         }
