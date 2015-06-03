@@ -1,0 +1,49 @@
+#!/usr/local/bin/php
+<?php
+
+namespace Example;
+
+require_once __DIR__.'/Autoloader.php';
+Autoloader::register();
+
+use Symfony\Component\Console\Application;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+use Monolog\Formatter\LineFormatter;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Rocket\Config\Config;
+use Rocket\Rocket;
+
+$eventDispatcher = new EventDispatcher();
+
+$config = new Config(json_decode(file_get_contents(__DIR__.'/config.json'), true));
+
+$logger = new Logger('rocket');
+$handler = new StreamHandler('php://stdout', Logger::INFO);
+$handler->setFormatter(new LineFormatter("%level_name%: %message% %context%\n"));
+$logger->pushHandler($handler);
+
+$rocket = new Rocket($config, $logger, $eventDispatcher);
+
+$application = new Application();
+$application->add(new Command\JobsCountCommand($rocket));
+$application->add(new Command\JobsHistoryCommand($rocket));
+$application->add(new Command\JobsInfoCommand($rocket));
+$application->add(new Command\JobsListCommand($rocket));
+$application->add(new Command\JobsQueueCommand($rocket));
+$application->add(new Command\JobsTopCommand($rocket));
+$application->add(new Command\JobsWorkCommand($rocket));
+$application->add(new Command\QueuesControlCommand($rocket));
+$application->add(new Command\QueuesInfoCommand($rocket));
+$application->add(new Command\QueuesListCommand($rocket));
+$application->add(new Command\QueuesStatsCommand($rocket));
+$application->add(new Command\QueuesTopCommand($rocket));
+$application->add(new Command\SystemFlushCommand($rocket));
+$application->add(new Command\SystemHaltCommand($rocket));
+$application->add(new Command\SystemResumeCommand($rocket));
+$application->add(new Command\SystemStartCommand($rocket));
+$application->add(new Command\SystemStatsCommand($rocket));
+$application->add(new Command\SystemStopCommand($rocket));
+$application->add(new Command\WorkersInfoCommand($rocket));
+$application->add(new Command\WorkersListCommand($rocket));
+$application->run();

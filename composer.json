@@ -1,0 +1,26 @@
+{
+    "name": "rubberpants/Rocket",
+    "description": "Redis PHP Job Queue",
+    "keywords": ["redis", "PHP", "queue"],
+    "homepage": "http://github.com/rubberpants/Rocket",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Courtney Ferguson",
+            "email": "cofergus@adobe.com"
+        }
+    ],
+    "config": {
+        "vendor-dir": "vendors/composer"
+    },
+    "require": {
+        "predis/predis": "v0.8.5",
+        "symfony/event-dispatcher": "v2.4.0",
+        "symfony/process": "v2.4.0",
+        "symfony/console": "v2.4.0",
+        "monolog/monolog": "1.10.*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "4.1.3"
+    }
+}

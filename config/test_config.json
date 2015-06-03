@@ -1,0 +1,40 @@
+{
+	"application_name": "test",
+	"redis_connections": [
+		"tcp://127.0.0.1:6379?database=10"
+	],
+	"queues": {
+		"default_min_running_limit": 2,
+		"default_max_running_limit": 4,
+		"default_waiting_limit": 0,
+		"min_running_limits": {
+			"test-queue1": 2,
+			"test-queue2": 2
+		},
+		"max_running_limits": {
+			"test-queue1": 4,
+			"test-queue2": 6
+		},		
+		"waiting_limits": {
+			"test-queue3": 400,
+			"test-queue4": 1
+		}
+	},
+	"monitor": {
+		"waiting_job_max": 2,
+		"delivered_job_max": 2,
+		"running_job_max": 2,
+		"cancelled_job_ttl": 2,
+		"completed_job_ttl": 2,
+		"failed_job_ttl": 2
+	},
+	"router": {
+		"default_expr":".dest",
+		"rules": [
+			{
+				"filter_expr":".estimate > 10",
+				"queue_expr":".dest+\"-large\""
+			}
+		]
+	}
+}

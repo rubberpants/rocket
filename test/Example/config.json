@@ -1,0 +1,40 @@
+{
+	"application_name": "example",
+	"redis_connections": [
+		"tcp://127.0.0.1:6379?database=12&alias=master",
+		"tcp://127.0.0.1:6380?database=12&alias=slave"
+	],
+	"queues": {
+		"default_min_running_limit": 2,
+		"default_max_running_limit": 4,
+		"default_waiting_limit": 100,
+		"min_running_limits": {
+			"queue2": 1
+		},
+		"max_running_limits": {
+			"queue2": 6
+		}
+	},
+	"monitor": {
+		"default_running_job_max": 60,
+		"cancelled_job_ttl": 300,
+		"completed_job_ttl": 3600,
+		"failed_job_ttl": 3600,
+		"waiting_job_max": 300,
+		"delivered_job_max": 300,
+		"running_job_max": 6
+	},
+	"router": {
+		"default_expr":".queue",
+		"rules": [
+			{
+				"filter_expr":".expedited == true",
+				"queue_expr":"\"expedited\""
+			},
+			{
+				"filter_expr":".runtime > 2",
+				"queue_expr":".queue+\"-large\""
+			}
+		]
+	}
+}
