@@ -48,7 +48,11 @@ class HashType extends BaseType implements \ArrayAccess
             $client->hincrby($this->getKey(), $name, $by);
         });
 
-        $this->hash[$name] += $by;
+        if (!array_key_exists($name, $this->hash)) {
+            $this->hash[$name] = 1;
+        } else {
+            $this->hash[$name] += $by;
+        }
 
         return $this;
     }
