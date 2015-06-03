@@ -32,7 +32,7 @@ class RouterPlugin extends AbstractPlugin
 
     public function routeJob($job, DateTime $scheduleTime = null)
     {
-        if ($this->scheduleTime) {
+        if ($scheduleTime) {
             return $this->getRocket()->getQueue($this->applyRulesToJob($job))->scheduleJob($scheduleTime, $job);
         } else {
             return $this->getRocket()->getQueue($this->applyRulesToJob($job))->queueJob($job);

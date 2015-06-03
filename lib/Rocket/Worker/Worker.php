@@ -302,7 +302,7 @@ class Worker implements WorkerInterface
         $timeout = $timeout ?: $this->getConfig()->getWorkerJobWaitTimeout();
 
         if ($this->randomFloat() <= $overheadProbability) {
-            $this->performOverheadTasks($rocket);
+            $this->performOverheadTasks();
             $this->getHash()->incField(self::FIELD_OVERHEAD_COUNT);
         }
 
