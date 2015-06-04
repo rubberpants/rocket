@@ -13,6 +13,11 @@
     "config": {
         "vendor-dir": "vendors/composer"
     },
+    "autoload": {
+        "psr-0": {
+            "Rocket": "lib"
+        }
+    },    
     "require": {
         "predis/predis": "v0.8.5",
         "symfony/event-dispatcher": "2.5.*",
