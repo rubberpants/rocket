@@ -1,4 +1,4 @@
-[![Build Status](https://api.travis-ci.org/rubberpants/Rocket.svg?branch=1.0)](http://travis-ci.org/rubberpants/Rocket)
+[![Build Status](https://api.travis-ci.org/rubberpants/rocket.svg?branch=1.0)](http://travis-ci.org/rubberpants/rocket)
 
 # Rocket
 Redis PHP Job Queue
