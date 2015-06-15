@@ -142,7 +142,7 @@ class Rocket implements RocketInterface
         } else {
             $queueName = $this->getRedis()->getClient()->hget(sprintf('JOB:%s', $jobId), 'queue_name');
             if (!$queueName) {
-                throw new Exception(sprintf('Job %s does not exist', $jobId));
+                throw new RocketException(sprintf('Job %s does not exist', $jobId));
             }
             $this->jobQueueMap[$jobId] = $queueName;
 
