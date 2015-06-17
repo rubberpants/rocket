@@ -410,7 +410,7 @@ class Queue implements QueueInterface
             case Job::STATUS_FAILED:
                 return $this->getFailedJobs();
             case Job::STATUS_COMPLETED:
-                return $this->getCompleteJobs();
+                return $this->getCompletedJobs();
         }
     }
 
