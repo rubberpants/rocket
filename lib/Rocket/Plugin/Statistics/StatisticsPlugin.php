@@ -135,6 +135,10 @@ class StatisticsPlugin extends AbstractPlugin
 
     public function incrementStats($queueName, $field)
     {
+        if (!$this->periodSize || !$this->periodCount) {
+            return;
+        }
+
         $period = $this->getCurrentPeriodStart();
         $expirationTime = $period+($this->periodSize*$this->periodCount);
 

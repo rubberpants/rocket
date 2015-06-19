@@ -149,6 +149,8 @@ class WorkerTest extends BaseTest
         $this->monitorEvent(Job::EVENT_FAIL);
         $this->monitorEvent(Worker::EVENT_JOB_DONE);
 
+        $job = $worker->getCurrentJob();
+
         try {
             $worker->progressCurrentJob(1);
         } catch (WorkerStopException $e) {
@@ -159,8 +161,8 @@ class WorkerTest extends BaseTest
         $this->assertGreaterThan(0, $worker->getTotalTimeBusy());
         $this->assertEquals(1, $worker->getOverheadCount());
         $this->assertEquals(time(), $worker->getLastJobDone());
-        $this->assertEquals(Job::STATUS_FAILED, $worker->getCurrentJob()->getStatus());
-        $this->assertEquals('Your cape is fabulous!', $worker->getCurrentJob()->getFailureMessage());
+        $this->assertEquals(Job::STATUS_FAILED, $job->getStatus());
+        $this->assertEquals('Your cape is fabulous!', $job->getFailureMessage());
         $this->assertFalse($worker->getHash()->fieldExists(Worker::FIELD_CURRENT_JOB));
         $this->assertFalse($worker->getHash()->fieldExists(Worker::FIELD_CURRENT_QUEUE));
         $this->assertEventFired(Worker::EVENT_JOB_DONE);

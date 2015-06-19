@@ -475,6 +475,9 @@ class Worker implements WorkerInterface
 
             $this->getEventDispatcher()->dispatch(self::EVENT_JOB_DONE, new WorkerEvent($this));
 
+            $this->getHash()->clearCache();
+            $this->currentJob = null;
+
             return true;
         }
 
@@ -502,6 +505,9 @@ class Worker implements WorkerInterface
             $this->getRedis()->closePipeline();
 
             $this->getEventDispatcher()->dispatch(self::EVENT_JOB_DONE, new WorkerEvent($this));
+
+            $this->getHash()->clearCache();
+            $this->currentJob = null;
 
             return true;
         }

@@ -49,7 +49,7 @@ class Config implements ConfigInterface
             if (array_key_exists($path[$depth], $data)) {
                 return $data[$path[$depth]];
             } else {
-                return null;
+                return;
             }
         } elseif (array_key_exists($path[$depth], $data)) {
             return $this->getValue($data[$path[$depth]], $path, $depth+1);

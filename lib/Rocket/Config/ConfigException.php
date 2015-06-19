@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Rocket\Config;
 
 use Rocket\RocketException;
