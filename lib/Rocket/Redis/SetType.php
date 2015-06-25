@@ -49,14 +49,18 @@ class SetType extends BaseType
     public function moveTo(SetType $targetSet, $item)
     {
         return $this->request(function ($client) use ($targetSet, $item) {
-            return $client->smove($this->getKey(), $targetSet->getKey(), $item);
+            //NOTE: smove is not supported by Predis with multiple connections
+            $client->srem($this->getKey(), $item);
+            return $client->sadd($targetSet->getKey(), $item);
         });
     }
 
     public function moveFrom(SetType $sourceSet, $item)
     {
         return $this->request(function ($client) use ($sourceSet, $item) {
-            return $client->smove($sourceSet->getKey(), $this->getKey(), $item);
+            //NOTE: smove is not supported by Predis with multiple connections     
+            $client->srem($sourceSet->getKey(), $item);
+            return $client->sadd($this->getKey(), $item);
         });
     }
 }
