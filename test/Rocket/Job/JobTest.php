@@ -51,6 +51,7 @@ class JobTest extends BaseTest
 
         $this->assertEquals([$job->getId()], $queue->getParkedJobs());
         $this->assertEquals(1, $queue->getParkedJobCount());
+        $this->assertNull($queue->getWaitingList()->getItem($job->getId()));
 
         $this->monitorEvent(Job::EVENT_UNPARK);
 
@@ -127,6 +128,7 @@ class JobTest extends BaseTest
         $this->assertEquals('Commander Kalgan', $job->getHash()->getField(Job::FIELD_WORKER_NAME));
         $this->assertEquals('Commander Kalgan', $job->getWorkerName());
         $this->assertTrue($job->getStartTime() instanceof \DateTime);
+        $this->assertTrue($job->getQueue()->getRunningSet()->hasItem($job->getId()));
 
         $this->assertException(function () use ($job) { $job->start('Commander Kalgan', 10); }, 'Rocket\RocketException', 'Could not start job because it has not been delivered');
 

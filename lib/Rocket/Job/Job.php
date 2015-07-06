@@ -396,9 +396,10 @@ class Job implements JobInterface
      */
     public function park()
     {
-        if ($this->getQueue()->getWaitingSet()->moveTo($this->getQueue()->getParkedSet(), $this->getId())) {
+        if ($this->getQueue()->getWaitingList()->deleteItem($this->getId())) {
             $this->getRedis()->openPipeline();
             $this->getHash()->setField(self::FIELD_STATUS, self::STATUS_PARKED);
+            $this->getQueue()->getWaitingSet()->moveTo($this->getQueue()->getParkedSet(), $this->getId());
             $this->getRedis()->closePipeline();
 
             $this->getEventDispatcher()->dispatch(self::EVENT_PARK, new JobEvent($this));

@@ -58,6 +58,7 @@ class WorkerTest extends BaseTest
         $this->assertEquals(1, $worker->getJobsDelivered());
         $this->assertEquals('Elvis killed JFK', $worker->getInfo());
         $this->assertEventFired(Job::EVENT_DELIVER);
+        $this->assertTrue($worker->getCurrentJob()->getQueue()->getRunningSet()->hasItem($worker->getCurrentJob()->getId()));
 
         $jobId = $worker->getCurrentJob()->getId();
         $this->assertTrue($worker->getNewJob('Elvis killed JFK'));
