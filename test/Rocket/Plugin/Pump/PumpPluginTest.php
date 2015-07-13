@@ -24,15 +24,16 @@ class PumpPluginTest extends BaseTest
 
         $plugin = $this->getPlugin();
         $plugin->getReadyQueueSet()->delete();
-        $plugin->getReadyJobList()->delete();
+        $plugin->getReadyJobList('test')->delete();
 
-        $queue->queueJob('Terror From the Year 5000');
+        $queue->queueJob('Terror From the Year 5000', 'test');
 
         list($jobId) = $plugin->execute(1, 1, 0);
 
         $job = $queue->getJob($jobId);
 
         $this->assertEquals(Job::STATUS_DELIVERED, $job->getStatus());
+        $this->assertEquals('test', $job->getType());
         $this->assertTrue($job->getDeliverTime() instanceof \DateTime);
         $this->assertFalse($queue->getWaitingSet()->hasItem($jobId));
         $this->assertTrue($queue->getRunningSet()->hasItem($jobId));
@@ -44,7 +45,7 @@ class PumpPluginTest extends BaseTest
         $queue = Harness::getInstance()->getNewQueue();
 
         $this->getPlugin()->getReadyQueueSet()->delete();
-        $this->getPlugin()->getReadyJobList()->delete();
+        $this->getPlugin()->getReadyJobList('test')->delete();
 
         $job = $queue->getJob('Deadliest Prey');
 

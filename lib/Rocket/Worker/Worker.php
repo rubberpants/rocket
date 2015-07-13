@@ -261,13 +261,14 @@ class Worker implements WorkerInterface
     }
 
     /**
-     * Perform some overhaead tasks, then wait to recieve a job.
-     * If no job was available, returns false. If a command is waiting the worker a WorkerCommandException
+     * Perform some overhaead tasks, then wait to recieve a job of the specified type.
+     * If no job of the specified type was available, returns false. If a command is waiting the worker a WorkerCommandException
      * will be thrown. Optionally specify a string of info to set for the worker. Optionally set the probability
      * that the worker will perform some overhead tasks before getting a job. The default is 1.0, always do overhead tasks.
      *
      * If returns true, then getCurrentJob() will have the job object that was recieved.
      *
+     * @param string $jobType
      * @param string $workerInfo
      * @param float  $overheadProbability
      *
@@ -275,7 +276,7 @@ class Worker implements WorkerInterface
      *
      * @return boolean
      */
-    public function getNewJob($workerInfo = null, $overheadProbability = 1.0, $timeout = null)
+    public function getNewJob($jobType = 'default', $workerInfo = null, $overheadProbability = 1.0, $timeout = null)
     {
         $this->activity();
 
@@ -306,7 +307,7 @@ class Worker implements WorkerInterface
             $this->getHash()->incField(self::FIELD_OVERHEAD_COUNT);
         }
 
-        $job = $this->pump->getReadyJobList()->blockAndPopItem($timeout);
+        $job = $this->pump->getReadyJobList($jobType)->blockAndPopItem($timeout);
 
         if ($job === null) {
             $this->debug('Worker timed out waiting for job');

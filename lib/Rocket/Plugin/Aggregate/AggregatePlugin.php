@@ -14,17 +14,20 @@ class AggregatePlugin extends AbstractPlugin
     protected $allRunningJobsSet;
     protected $allScheduledJobsSet;
     protected $allWorkersSet;
+    protected $allJobTypesSet;
 
     public function register()
     {
         $scheduleJobEventHandler = function (JobEvent $event) {
             $this->getAllScheduledJobsSet()->addItem($event->getJob()->getId());
+            $this->getAllJobTypesSet()->addItem($event->getJob()->getType());
             $this->debug(sprintf('Job %s added to scheduled aggregate sets', $event->getJob()->getId()));
         };
 
         $addJobEventHandler = function (JobEvent $event) {
             $this->getAllScheduledJobsSet()->deleteItem($event->getJob()->getId());
             $this->getAllWaitingJobsSet()->addItem($event->getJob()->getId());
+            $this->getAllJobTypesSet()->addItem($event->getJob()->getType());
             $this->debug(sprintf('Job %s added to waiting aggregate sets', $event->getJob()->getId()));
         };
 
@@ -102,6 +105,15 @@ class AggregatePlugin extends AbstractPlugin
         return $this->allWorkersSet;
     }
 
+    public function getAllJobTypesSet()
+    {
+        if (is_null($this->allJobTypesSet)) {
+            $this->allJobTypesSet = $this->getRedis()->getSetType('ALL_JOB_TYPES');
+        }
+
+        return $this->allJobTypesSet;
+    }
+
     public function getAllWaitingJobs()
     {
         return $this->getAllWaitingJobsSet()->getItems();
@@ -122,6 +134,11 @@ class AggregatePlugin extends AbstractPlugin
         return $this->getAllWorkersSet()->getItems();
     }
 
+    public function getAllJobTypes()
+    {
+        return $this->getAllJobTypesSet()->getItems();
+    }
+
     public function getAllRunningJobCount()
     {
         return $this->getAllRunningJobsSet()->getCount();
@@ -140,5 +157,10 @@ class AggregatePlugin extends AbstractPlugin
     public function getAllWorkersCount()
     {
         return $this->getAllWorkersSet()->getCount();
+    }
+
+    public function getAllJobTypesCount()
+    {
+        return $this->getAllJobTypesSet()->getCount();
     }
 }

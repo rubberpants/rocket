@@ -33,6 +33,7 @@ class Job implements JobInterface
     const EVENT_ALERT    = 'job.alert';
 
     const FIELD_ID            = 'id';
+    const FIELD_TYPE          = 'type';
     const FIELD_STATUS        = 'status';
     const FIELD_PROGRESS      = 'progress';
     const FIELD_MAX_RUNTIME   = 'max_runtime';
@@ -134,6 +135,16 @@ class Job implements JobInterface
     public function getStatus()
     {
         return $this->getHash()->getField(self::FIELD_STATUS);
+    }
+
+    /**
+     * Get the job type.
+     *
+     * @return string
+     */
+    public function getType()
+    {
+        return $this->getHash()->getField(self::FIELD_TYPE);
     }
 
     /**

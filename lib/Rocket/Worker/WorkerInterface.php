@@ -20,7 +20,7 @@ interface WorkerInterface
     public function setCommand($command);
     public function clearCommand();
     public function getInfo();
-    public function getNewJob($workerInfo = null, $overhead = 1.0, $timeout = null);
+    public function getNewJob($jobType = 'default', $workerInfo = null, $overhead = 1.0, $timeout = null);
     public function startCurrentJob();
     public function progressCurrentJob($progress);
     public function pauseCurrentJob();

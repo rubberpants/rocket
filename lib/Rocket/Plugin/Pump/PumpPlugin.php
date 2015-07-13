@@ -14,8 +14,10 @@ use Predis\ServerException;
 
 class PumpPlugin extends AbstractPlugin
 {
+    use \Rocket\ObjectCacheTrait;
+
     protected $readyQueueSet;
-    protected $readyJobList;
+    protected $readyJobLists = [];
     protected $haltProcessingString;
     protected $pumpActivityString;
     protected $stopPumpString;
@@ -76,13 +78,15 @@ class PumpPlugin extends AbstractPlugin
         return $this->readyQueueSet;
     }
 
-    public function getReadyJobList()
+    public function getReadyJobList($jobType)
     {
-        if (is_null($this->readyJobList)) {
-            $this->readyJobList = $this->getRedis()->getListType('READY_JOBS');
-        }
+        $key = sprintf('READY_JOBS:%s', $jobType);
 
-        return $this->readyJobList;
+        return $this->getCachedObject('ready_list', $key, function ($key) {
+            $list = $this->getRedis()->getListType($key);
+
+            return $list;
+        });
     }
 
     public function getHaltProcessingString()
@@ -210,7 +214,7 @@ class PumpPlugin extends AbstractPlugin
             $job = $this->getRocket()->getQueue($queueName)->getJob($jobId);
             if ($job->getHash()->exists()) {
                 $this->info(sprintf('Queuing scheduled job %s into %s', $job->getId(), $job->getQueueName()));
-                $job->getQueue()->queueJob($job->getJob(), $job->getId(), $job->getMaxRuntime());
+                $job->getQueue()->queueJob($job->getJob(), $job->getType(), $job->getId(), $job->getMaxRuntime());
                 $this->getScheduledSortedSet()->deleteItem($jobInfo);
             } else {
                 $this->warning(sprintf('Scheduled job does not exist: %s', $jobInfo));
@@ -252,13 +256,15 @@ EOD;
     {
         $script = <<<EOD
 local jobs_pumped = {}
+local job_type = ""
 while table.getn(jobs_pumped) < tonumber(ARGV[1]) and tonumber(redis.call('scard', KEYS[1])) < tonumber(ARGV[2]) and tonumber(redis.call('scard', KEYS[2])) > 0 do
   local job_id = redis.call('lpop', KEYS[3])
   if redis.call('exists', KEYS[5]..job_id) then
+    job_type = redis.call('hget', KEYS[5]..job_id, 'type')
     redis.call('smove', KEYS[2], KEYS[1], job_id)
     redis.call('hset', KEYS[5]..job_id, 'status', 'delivered')
     redis.call('hset', KEYS[5]..job_id, 'deliver_time', ARGV[3])
-    redis.call('rpush', KEYS[4], '["'..ARGV[4]..'","'..job_id..'"]')
+    redis.call('rpush', KEYS[4]..job_type, '["'..ARGV[4]..'","'..job_id..'"]')
     table.insert(jobs_pumped, job_id)
   end
 end
@@ -272,7 +278,7 @@ EOD;
                 $runningSetKey,
                 $waitingSetKey,
                 $waitingListKey,
-                $this->getReadyJobList()->getKey(),
+                'READY_JOBS:',
                 'JOB:',
                 $maxJobsToPump,
                 $runningLimit,
@@ -286,7 +292,7 @@ EOD;
                 $runningSetKey,
                 $waitingSetKey,
                 $waitingListKey,
-                $this->getReadyJobList()->getKey(),
+                'READY_JOBS:',
                 'JOB:',
                 $maxJobsToPump,
                 $runningLimit,

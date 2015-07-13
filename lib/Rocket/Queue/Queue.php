@@ -124,12 +124,13 @@ class Queue implements QueueInterface
      *
      * @param DateTime $time
      * @param string   $jobData
+     * @param string   $type
      * @param string   $id
      * @param int      $maxRuntime
      *
      * @return Job | boolean
      */
-    public function scheduleJob(\DateTime $time, $jobData, $id = null, $maxRuntime = 0)
+    public function scheduleJob(\DateTime $time, $jobData, $type = 'default', $id = null, $maxRuntime = 0)
     {
         $this->init();
 
@@ -138,7 +139,7 @@ class Queue implements QueueInterface
             $this->info(sprintf('Assigning id %s to new job', $id));
         }
 
-        $job = $this->initNewJobObject($id, $jobData, $maxRuntime);
+        $job = $this->initNewJobObject($id, $type, $jobData, $maxRuntime);
 
         $this->getRedis()->openPipeline();
         $job->getHash()->setField(Job::FIELD_SCHEDULE_TIME, $time->format(\DateTime::ISO8601));
@@ -161,12 +162,13 @@ class Queue implements QueueInterface
      * a job will alert.
      *
      * @param string $jobData
+     * @param string $type
      * @param string $id
      * @param int    $maxRuntime
      *
      * @return Job | boolean
      */
-    public function queueJob($jobData, $id = null, $maxRuntime = 0)
+    public function queueJob($jobData, $type = 'default', $id = null, $maxRuntime = 0)
     {
         if ($this->isDisabled()) {
             $this->getEventDispatcher()->dispatch(self::EVENT_FULL, new QueueFullEvent($this, $jobData));
@@ -189,7 +191,7 @@ class Queue implements QueueInterface
             $this->info(sprintf('Assigning id %s to new job', $id));
         }
 
-        $job = $this->initNewJobObject($id, $jobData, $maxRuntime);
+        $job = $this->initNewJobObject($id, $type, $jobData, $maxRuntime);
 
         $this->getRedis()->openPipeline();
         $job->getHash()->setField(Job::FIELD_QUEUE_TIME,  (new \DateTime())->format(\DateTime::ISO8601));
@@ -534,12 +536,13 @@ class Queue implements QueueInterface
         return $this->rocket->getPlugin('pump')->getScheduledSortedSet();
     }
 
-    protected function initNewJobObject($id, $jobData, $maxRuntime)
+    protected function initNewJobObject($id, $type, $jobData, $maxRuntime)
     {
         $job = new Job($id, $this);
 
         $this->getRedis()->openPipeline();
         $job->getHash()->setField(Job::FIELD_ID,          $id);
+        $job->getHash()->setField(Job::FIELD_TYPE,        $type);
         $job->getHash()->setField(Job::FIELD_QUEUE_NAME,  $this->getQueueName());
         $job->getHash()->setField(Job::FIELD_JOB,         $jobData);
         $job->getHash()->setField(Job::FIELD_MAX_RUNTIME, $maxRuntime);

@@ -28,7 +28,7 @@ class WorkerTest extends BaseTest
         $worker = Harness::getInstance()->getWorker('Peanut');
 
         $this->monitorEvent(Worker::EVENT_ACTIVITY);
-        $worker->getNewJob('', 1.0, 1);
+        $worker->getNewJob('default', '', 1.0, 1);
         $this->assertEventFired(Worker::EVENT_ACTIVITY);
 
         $this->monitorEvent(Worker::EVENT_DELETE);
@@ -43,16 +43,17 @@ class WorkerTest extends BaseTest
         $queue = Harness::getInstance()->getNewQueue();
 
         Harness::getInstance()->getPlugin('pump')->getReadyQueueSet()->delete();
-        Harness::getInstance()->getPlugin('pump')->getReadyJobList()->delete();
+        Harness::getInstance()->getPlugin('pump')->getReadyJobList('test')->delete();
         Harness::getInstance()->getPlugin('monitor')->getEventsSortedSet()->delete();
 
-        $queue->queueJob('The Crawling Eye');
+        $queue->queueJob('The Crawling Eye', 'test');
 
         $this->monitorEvent(Job::EVENT_DELIVER);
 
-        $this->assertTrue($worker->getNewJob('Elvis killed JFK'));
+        $this->assertTrue($worker->getNewJob('test', 'Elvis killed JFK'));
         $this->assertEquals(Job::STATUS_DELIVERED, $worker->getCurrentJob()->getStatus());
         $this->assertEquals('Brain Guy', $worker->getCurrentJob()->getWorkerName());
+        $this->assertEquals('test', $worker->getCurrentJob()->getType());
         $this->assertEquals($queue->getQueueName(), $worker->getCurrentQueueName());
         $this->assertEquals($worker->getCurrentJob()->getId(), $worker->getCurrentJobId());
         $this->assertEquals(1, $worker->getJobsDelivered());
@@ -61,7 +62,7 @@ class WorkerTest extends BaseTest
         $this->assertTrue($worker->getCurrentJob()->getQueue()->getRunningSet()->hasItem($worker->getCurrentJob()->getId()));
 
         $jobId = $worker->getCurrentJob()->getId();
-        $this->assertTrue($worker->getNewJob('Elvis killed JFK'));
+        $this->assertTrue($worker->getNewJob('test', 'Elvis killed JFK'));
         $this->assertEquals($jobId, $worker->getCurrentJob()->getId());
 
         $this->monitorEvent(Job::EVENT_START);
@@ -134,12 +135,12 @@ class WorkerTest extends BaseTest
         $queue = Harness::getInstance()->getNewQueue();
 
         Harness::getInstance()->getPlugin('pump')->getReadyQueueSet()->delete();
-        Harness::getInstance()->getPlugin('pump')->getReadyJobList()->delete();
+        Harness::getInstance()->getPlugin('pump')->getReadyJobList('test')->delete();
         Harness::getInstance()->getPlugin('monitor')->getEventsSortedSet()->delete();
 
-        $queue->queueJob('Cave Dwellers');
+        $queue->queueJob('Cave Dwellers', 'test');
 
-        $this->assertTrue($worker->getNewJob());
+        $this->assertTrue($worker->getNewJob('test'));
         $this->assertTrue($worker->startCurrentJob());
 
         sleep(1);

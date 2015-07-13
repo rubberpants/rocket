@@ -9,7 +9,8 @@ interface QueueInterface
     public function init();
     public function getQueueName();
     public function moveJob(JobInterface &$job);
-    public function queueJob($job, $id = null, $maxRuntime = 0);
+    public function scheduleJob(\DateTime $time, $jobData, $type = 'default', $id = null, $maxRuntime = 0);
+    public function queueJob($job, $type = 'default', $id = null, $maxRuntime = 0);
     public function getWaitingLimit();
     public function getMinRunningLimit();
     public function getMaxRunningLimit();

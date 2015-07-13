@@ -31,8 +31,9 @@ class StatisticsPlugin extends AbstractPlugin
     protected $periodSize;
     protected $periodCount;
 
-    protected $allStatsHashes = [];
-    protected $queueStatsHashes  = [];
+    protected $allStatsHashes   = [];
+    protected $queueStatsHashes = [];
+    protected $jobTypeStatsHashes  = [];
 
     public function register()
     {
@@ -42,6 +43,7 @@ class StatisticsPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Job::EVENT_SCHEDULE, function (JobEvent $event) {
             $this->incrementStats(
                 $event->getJob()->getQueueName(),
+                $event->getJob()->getType(),
                 self::FIELD_SCHEDULED
             );
         });
@@ -49,6 +51,7 @@ class StatisticsPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Job::EVENT_QUEUE, function (JobEvent $event) {
             $this->incrementStats(
                 $event->getJob()->getQueueName(),
+                $event->getJob()->getType(),
                 self::FIELD_QUEUED
             );
         });
@@ -56,6 +59,7 @@ class StatisticsPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Job::EVENT_CANCEL, function (JobEvent $event) {
             $this->incrementStats(
                 $event->getJob()->getQueueName(),
+                $event->getJob()->getType(),
                 self::FIELD_CANCELLED
             );
         });
@@ -63,6 +67,7 @@ class StatisticsPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Job::EVENT_DELIVER, function (JobEvent $event) {
             $this->incrementStats(
                 $event->getJob()->getQueueName(),
+                $event->getJob()->getType(),
                 self::FIELD_DELIVERED
             );
         });
@@ -70,6 +75,7 @@ class StatisticsPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Job::EVENT_REQUEUE, function (JobEvent $event) {
             $this->incrementStats(
                 $event->getJob()->getQueueName(),
+                $event->getJob()->getType(),
                 self::FIELD_REQUEUED
             );
         });
@@ -77,6 +83,7 @@ class StatisticsPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Job::EVENT_START, function (JobEvent $event) {
             $this->incrementStats(
                 $event->getJob()->getQueueName(),
+                $event->getJob()->getType(),
                 self::FIELD_STARTED
             );
         });
@@ -84,6 +91,7 @@ class StatisticsPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Job::EVENT_COMPLETE, function (JobEvent $event) {
             $this->incrementStats(
                 $event->getJob()->getQueueName(),
+                $event->getJob()->getType(),
                 self::FIELD_COMPLETED
             );
         });
@@ -91,6 +99,7 @@ class StatisticsPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Job::EVENT_FAIL, function (JobEvent $event) {
             $this->incrementStats(
                 $event->getJob()->getQueueName(),
+                $event->getJob()->getType(),
                 self::FIELD_FAILED
             );
         });
@@ -98,6 +107,7 @@ class StatisticsPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Job::EVENT_DELETE, function (JobEvent $event) {
             $this->incrementStats(
                 $event->getJob()->getQueueName(),
+                $event->getJob()->getType(),
                 self::FIELD_DELETED
             );
         });
@@ -107,18 +117,21 @@ class StatisticsPlugin extends AbstractPlugin
                 case Job::STATUS_WAITING:
                     $this->incrementStats(
                         $event->getJob()->getQueueName(),
+                        $event->getJob()->getType(),
                         self::FIELD_WAITING_ALERTS
                     );
                     break;
                 case Job::STATUS_DELIVERED:
                     $this->incrementStats(
                         $event->getJob()->getQueueName(),
+                        $event->getJob()->getType(),
                         self::FIELD_DELIVERED_ALERTS
                     );
                     break;
                 case Job::STATUS_RUNNING:
                     $this->incrementStats(
                         $event->getJob()->getQueueName(),
+                        $event->getJob()->getType(),
                         self::FIELD_RUNNING_ALERTS
                     );
                     break;
@@ -128,12 +141,13 @@ class StatisticsPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Queue::EVENT_FULL, function (QueueFullEvent $event) {
             $this->incrementStats(
                 $event->getQueue()->getQueueName(),
+                '',
                 self::FIELD_FULL_ALERTS
             );
         });
     }
 
-    public function incrementStats($queueName, $field)
+    public function incrementStats($queueName, $jobType, $field)
     {
         if (!$this->periodSize || !$this->periodCount) {
             return;
@@ -149,6 +163,9 @@ class StatisticsPlugin extends AbstractPlugin
 
         $this->getQueueStatsHash($queueName, $period)->incField($field);
         $this->getQueueStatsHash($queueName, $period)->expireAt($expirationTime);
+
+        $this->getJobTypeStatsHash($jobType, $period)->incField($field);
+        $this->getJobTypeStatsHash($jobType, $period)->expireAt($expirationTime);
 
         $this->getRedis()->closePipeline();
     }
@@ -169,6 +186,17 @@ class StatisticsPlugin extends AbstractPlugin
         $key = sprintf('STATS_QUEUE:%s:%d', $queueName, $period);
 
         return $this->getCachedObject('queue', $key, function ($key) {
+            $hash = $this->getRedis()->getHashType($key);
+
+            return $hash;
+        }, $this->periodCount);
+    }
+
+    public function getJobTypeStatsHash($jobType, $period)
+    {
+        $key = sprintf('STATS_TYPE:%s:%d', $jobType, $period);
+
+        return $this->getCachedObject('type', $key, function ($key) {
             $hash = $this->getRedis()->getHashType($key);
 
             return $hash;
@@ -224,6 +252,17 @@ class StatisticsPlugin extends AbstractPlugin
 
         foreach ($this->getAllPeriods() as $period) {
             $stats[$period] = $this->getQueueStatsHash($queue->getQueueName(), $period)->getFields();
+        }
+
+        return $stats;
+    }
+
+    public function getJobTypeStatistics($jobType)
+    {
+        $stats = [];
+
+        foreach ($this->getAllPeriods() as $period) {
+            $stats[$period] = $this->getJobTypeStatsHash($jobType, $period)->getFields();
         }
 
         return $stats;
