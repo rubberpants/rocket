@@ -6,6 +6,7 @@ interface JobInterface
 {
     public function getId();
     public function getStatus();
+    public function getType();
     public function getProgress();
     public function getJob();
     public function getQueue();
