@@ -6,6 +6,7 @@ Redis PHP Job Queue
 ## Major Features ##
 
 - Dynamic queue creation with JQ routing rules
+- Deliver jobs based on job type
 - Schedule jobs to queue in the future
 - Park/Unpark waiting jobs
 - Progress/Pausing/Resuming running jobs supported
