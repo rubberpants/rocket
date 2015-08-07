@@ -486,13 +486,15 @@ class Worker implements WorkerInterface
     }
 
     /**
-     * Tell the system we're failing the job.
+     * Tell the system we're failing the job. Optionally specify the number of seconds to wait
+     * until retrying the job.
      *
      * @param string $failureMessage
+     * @param int $retryDelay
      *
      * @return boolean
      */
-    public function failCurrentJob($failureMessage)
+    public function failCurrentJob($failureMessage, $retryDelay = null)
     {
         $this->activity();
 
@@ -506,6 +508,12 @@ class Worker implements WorkerInterface
             $this->getRedis()->closePipeline();
 
             $this->getEventDispatcher()->dispatch(self::EVENT_JOB_DONE, new WorkerEvent($this));
+
+            if (!is_null($retryDelay)) {
+                $retryTime = new \DateTime();
+                $retryTime->add(new \DateInterval(sprintf('PT%dS', $retryDelay)));
+                $this->currentJob->requeue($retryTime);
+            }
 
             $this->getHash()->clearCache();
             $this->currentJob = null;

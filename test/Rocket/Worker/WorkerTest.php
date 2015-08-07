@@ -120,7 +120,7 @@ class WorkerTest extends BaseTest
 
         $this->assertTrue($worker->completeCurrentJob());
         $this->assertEquals(1, $worker->getJobsCompleted());
-        $this->assertEquals(1, $worker->getTotalTimeBusy());
+        $this->assertGreaterThan(0, $worker->getTotalTimeBusy());
         $this->assertEquals(1, $worker->getOverheadCount());
         $this->assertEquals(time(), $worker->getLastJobDone());
         $this->assertFalse($worker->getHash()->fieldExists(Worker::FIELD_CURRENT_JOB));
@@ -169,4 +169,47 @@ class WorkerTest extends BaseTest
         $this->assertFalse($worker->getHash()->fieldExists(Worker::FIELD_CURRENT_QUEUE));
         $this->assertEventFired(Worker::EVENT_JOB_DONE);
     }
+
+    public function testFailAndRetryJob()
+    {
+        $worker = Harness::getInstance()->getWorker('Jack Perkins');
+
+        $queue = Harness::getInstance()->getNewQueue();
+
+        Harness::getInstance()->getPlugin('pump')->getReadyQueueSet()->delete();
+        Harness::getInstance()->getPlugin('pump')->getReadyJobList('test')->delete();
+        Harness::getInstance()->getPlugin('monitor')->getEventsSortedSet()->delete();
+
+        $queue->queueJob('Red Zone Cuba', 'test');
+
+        $this->assertTrue($worker->getNewJob('test'));
+        $this->assertTrue($worker->startCurrentJob());
+
+        sleep(1);
+
+        $this->monitorEvent(Job::EVENT_FAIL);
+        $this->monitorEvent(Worker::EVENT_JOB_DONE);
+        $this->monitorEvent(Job::EVENT_REQUEUE);
+
+        $job = $worker->getCurrentJob();
+
+        $retryTime = new \DateTime();
+        $retryTime->add(new \DateInterval('PT10S'));
+
+        $this->assertTrue($worker->failCurrentJob('Use the handrails I invented them for a reason', 10));
+
+        $this->assertEquals(2, $worker->getJobsFailed());
+        $this->assertGreaterThan(0, $worker->getTotalTimeBusy());
+        $this->assertEquals(2, $worker->getOverheadCount());
+        $this->assertEquals(time(), $worker->getLastJobDone());
+        $this->assertEquals(Job::STATUS_SCHEDULED, $job->getStatus());
+        $this->assertEquals($retryTime->format(\DateTime::ISO8601), $job->getScheduledTime()->format(\DateTime::ISO8601));
+        $this->assertEquals('Use the handrails I invented them for a reason', $job->getFailureMessage());
+        $this->assertFalse($worker->getHash()->fieldExists(Worker::FIELD_CURRENT_JOB));
+        $this->assertFalse($worker->getHash()->fieldExists(Worker::FIELD_CURRENT_QUEUE));
+        $this->assertEventFired(Worker::EVENT_JOB_DONE);
+        $this->assertEventFired(Job::EVENT_FAIL);
+        $this->assertEventFired(Job::EVENT_REQUEUE);
+    }
+
 }
