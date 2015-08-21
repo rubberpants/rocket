@@ -4,6 +4,7 @@ namespace Rocket\Plugin\UniqueJob;
 
 use Rocket\Plugin\AbstractPlugin;
 use Rocket\Job\Job;
+use Rocket\Job\JobInterface;
 use Rocket\Job\JobEvent;
 
 class UniqueJobPlugin extends AbstractPlugin
@@ -16,14 +17,12 @@ class UniqueJobPlugin extends AbstractPlugin
     {
         $addJobEventHandler = function (JobEvent $event) {
             $job = $event->getJob();
-            $hash = $this->hashJob($job->getJob());
-            $this->getActiveUniqueJobHash()->setField($hash, $job->getId());
+            $this->getActiveUniqueJobHash()->setField($job->getJobDigest(), $job->getId());
         };
 
         $removeJobEventHandler = function (JobEvent $event) {
             $job = $event->getJob();
-            $hash = $this->hashJob($job->getJob());
-            $this->getActiveUniqueJobHash()->deleteField($hash);
+            $this->getActiveUniqueJobHash()->deleteField($job->getJobDigest());
         };
 
         $this->getEventDispatcher()->addListener(Job::EVENT_SCHEDULE, $addJobEventHandler);
@@ -34,9 +33,14 @@ class UniqueJobPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Job::EVENT_DELETE,   $removeJobEventHandler);
     }
 
-    public function getJobIdIfActive($jobData)
+    public function getJobIdIfActive(JobInterface $job)
     {
-        return $this->getActiveUniqueJobHash()->getField($this->hashJob($jobData));
+        return $this->getActiveUniqueJobHash()->getField($job->getJobDigest());
+    }
+
+    public function getJobIdIfActiveByDigest($jobDigest)
+    {
+        return $this->getActiveUniqueJobHash()->getField($jobDigest);
     }
 
     public function getActiveUniqueJobHash()
@@ -46,10 +50,5 @@ class UniqueJobPlugin extends AbstractPlugin
         }
 
         return $this->activeUniqueJobHash;
-    }
-
-    protected function hashJob($jobData)
-    {
-        return sha1($jobData);
     }
 }

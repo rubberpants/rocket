@@ -109,6 +109,7 @@ class QueueTest extends BaseTest
         $this->assertEquals($queue->getQueueName(), $job->getQueueName());
         $this->assertEquals($queue, $job->getQueue());
         $this->assertEquals('Bold Bigflank', $job->getJob());
+        $this->assertEquals(sha1('Bold Bigflank'), $job->getJobDigest());
         $this->assertEventFired(Job::EVENT_SCHEDULE);
         $this->assertEquals([$job->getId()], $queue->getScheduledJobs());
         $this->assertEquals(1, $queue->getScheduledJobCount());
@@ -127,6 +128,7 @@ class QueueTest extends BaseTest
         $this->assertEquals($queue->getQueueName(), $job->getQueueName());
         $this->assertEquals($queue, $job->getQueue());
         $this->assertEquals('Bold Bigflank', $job->getJob());
+        $this->assertEquals(sha1('Bold Bigflank'), $job->getJobDigest());
         $this->assertEventFired(Job::EVENT_QUEUE);
         $this->assertEquals([$job->getId()], $queue->getWaitingJobs());
         $this->assertEquals(1, $queue->getWaitingJobCount());
@@ -150,6 +152,7 @@ class QueueTest extends BaseTest
         $this->assertEquals($queue->getQueueName(), $job->getQueueName());
         $this->assertEquals($queue, $job->getQueue());
         $this->assertEquals('Trunk SlamChest', $job->getJob());
+        $this->assertEquals(sha1('Trunk SlamChest'), $job->getJobDigest());
         $this->assertEventFired(Job::EVENT_QUEUE);
         $this->assertEquals([$job->getId()], $queue->getWaitingJobs());
         $this->assertEquals(1, $queue->getWaitingJobCount());

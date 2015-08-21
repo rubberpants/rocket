@@ -211,5 +211,4 @@ class WorkerTest extends BaseTest
         $this->assertEventFired(Job::EVENT_FAIL);
         $this->assertEventFired(Job::EVENT_REQUEUE);
     }
-
 }

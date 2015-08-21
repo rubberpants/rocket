@@ -30,14 +30,14 @@ class UniqueJobPluginTest extends BaseTest
 
         $plugin->register();
 
-        $this->assertNull($plugin->getJobIdIfActive('Pumaman'));
-
         $job = $queue->queueJob('Pumaman');
 
-        $this->assertEquals($job->getId(), $plugin->getJobIdIfActive('Pumaman'));
+        $this->assertEquals($job->getId(), $plugin->getJobIdIfActive($job));
+
+        $this->assertEquals($job->getId(), $plugin->getJobIdIfActiveByDigest(sha1('Pumaman')));
 
         $job->cancel();
 
-        $this->assertNull($plugin->getJobIdIfActive('Pumaman'));
+        $this->assertNull($plugin->getJobIdIfActive($job));
     }
 }

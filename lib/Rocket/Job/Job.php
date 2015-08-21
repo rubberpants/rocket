@@ -38,6 +38,7 @@ class Job implements JobInterface
     const FIELD_PROGRESS      = 'progress';
     const FIELD_MAX_RUNTIME   = 'max_runtime';
     const FIELD_JOB           = 'job';
+    const FIELD_JOB_DIGEST    = 'job_digest';
     const FIELD_QUEUE_NAME    = 'queue_name';
     const FIELD_WORKER_NAME   = 'worker_name';
     const FIELD_SCHEDULE_TIME = 'sched_time';
@@ -324,6 +325,21 @@ class Job implements JobInterface
     public function getJob()
     {
         return $this->getHash()->getField(self::FIELD_JOB);
+    }
+
+    /**
+     * Get the unique message digest for the job. If one wasn't specified when the job was
+     * created, the SHA1 hash of the payload is used.
+     *
+     * @return string
+     */
+    public function getJobDigest()
+    {
+        if ($digest = $this->getHash()->getField(self::FIELD_JOB_DIGEST)) {
+            return $digest;
+        } else {
+            return sha1($this->getHash()->getField(self::FIELD_JOB));
+        }
     }
 
     /**

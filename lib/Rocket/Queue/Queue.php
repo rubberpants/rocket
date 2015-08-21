@@ -120,17 +120,18 @@ class Queue implements QueueInterface
     /**
      * Schedule a job to be queued at a specific time. Optionally specify the id to use for the
      * new job. Returns the new job object. Optionally include the runtime before
-     * a job will alert.
+     * a job will alert. Optionally specify the message digest for the payload.
      *
      * @param DateTime $time
      * @param string   $jobData
      * @param string   $type
      * @param string   $id
      * @param int      $maxRuntime
+     * @param string   $jobDigest
      *
      * @return Job | boolean
      */
-    public function scheduleJob(\DateTime $time, $jobData, $type = 'default', $id = null, $maxRuntime = 0)
+    public function scheduleJob(\DateTime $time, $jobData, $type = 'default', $id = null, $maxRuntime = 0, $jobDigest = null)
     {
         $this->init();
 
@@ -139,7 +140,7 @@ class Queue implements QueueInterface
             $this->info(sprintf('Assigning id %s to new job', $id));
         }
 
-        $job = $this->initNewJobObject($id, $type, $jobData, $maxRuntime);
+        $job = $this->initNewJobObject($id, $type, $jobData, $maxRuntime, $jobDigest);
 
         $this->getRedis()->openPipeline();
         $job->getHash()->setField(Job::FIELD_SCHEDULE_TIME, $time->format(\DateTime::ISO8601));
@@ -159,16 +160,17 @@ class Queue implements QueueInterface
      * Queue the job payload at the end of this queue. Optionally specify the id to use for the
      * new job. Returns the new job object. If the queue is disabled, returns false. If the queue
      * is already at it's waiting job limit, returns false. Optionally include the runtime before
-     * a job will alert.
+     * a job will alert. Optionally specify the message digest for the payload.
      *
      * @param string $jobData
      * @param string $type
      * @param string $id
      * @param int    $maxRuntime
+     * @param string $jobDigest
      *
      * @return Job | boolean
      */
-    public function queueJob($jobData, $type = 'default', $id = null, $maxRuntime = 0)
+    public function queueJob($jobData, $type = 'default', $id = null, $maxRuntime = 0, $jobDigest = null)
     {
         if ($this->isDisabled()) {
             $this->getEventDispatcher()->dispatch(self::EVENT_FULL, new QueueFullEvent($this, $jobData));
@@ -191,7 +193,7 @@ class Queue implements QueueInterface
             $this->info(sprintf('Assigning id %s to new job', $id));
         }
 
-        $job = $this->initNewJobObject($id, $type, $jobData, $maxRuntime);
+        $job = $this->initNewJobObject($id, $type, $jobData, $maxRuntime, $jobDigest);
 
         $this->getRedis()->openPipeline();
         $job->getHash()->setField(Job::FIELD_QUEUE_TIME,  (new \DateTime())->format(\DateTime::ISO8601));
@@ -536,7 +538,7 @@ class Queue implements QueueInterface
         return $this->rocket->getPlugin('pump')->getScheduledSortedSet();
     }
 
-    protected function initNewJobObject($id, $type, $jobData, $maxRuntime)
+    protected function initNewJobObject($id, $type, $jobData, $maxRuntime, $jobDigest)
     {
         $job = new Job($id, $this);
 
@@ -546,6 +548,7 @@ class Queue implements QueueInterface
         $job->getHash()->setField(Job::FIELD_QUEUE_NAME,  $this->getQueueName());
         $job->getHash()->setField(Job::FIELD_JOB,         $jobData);
         $job->getHash()->setField(Job::FIELD_MAX_RUNTIME, $maxRuntime);
+        $job->getHash()->setField(Job::FIELD_JOB_DIGEST,  $jobDigest);
         $this->getRedis()->closePipeline();
 
         return $job;

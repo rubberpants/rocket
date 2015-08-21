@@ -9,6 +9,7 @@ interface JobInterface
     public function getType();
     public function getProgress();
     public function getJob();
+    public function getJobDigest();
     public function getQueue();
     public function getQueueName();
     public function getWorkerName();

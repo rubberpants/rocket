@@ -490,7 +490,7 @@ class Worker implements WorkerInterface
      * until retrying the job.
      *
      * @param string $failureMessage
-     * @param int $retryDelay
+     * @param int    $retryDelay
      *
      * @return boolean
      */
