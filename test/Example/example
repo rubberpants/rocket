@@ -40,7 +40,7 @@ $application->add(new Command\QueuesListCommand($rocket));
 $application->add(new Command\QueuesStatsCommand($rocket));
 $application->add(new Command\QueuesTopCommand($rocket));
 $application->add(new Command\SystemFlushCommand($rocket));
-$application->add(new Command\SystemHaltCommand($rocket));
+$application->add(new Command\SystemPauseCommand($rocket));
 $application->add(new Command\SystemResumeCommand($rocket));
 $application->add(new Command\SystemStartCommand($rocket));
 $application->add(new Command\SystemStatsCommand($rocket));

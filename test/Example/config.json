@@ -2,7 +2,7 @@
 	"application_name": "example",
 	"redis_connections": [
 		"tcp://127.0.0.1:6379?database=12&alias=master",
-		"tcp://127.0.0.1:6380?database=12&alias=slave"
+		"tcp://127.0.0.1:6380?database=12&alias=slave1"
 	],
 	"queues": {
 		"default_min_running_limit": 2,

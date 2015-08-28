@@ -28,11 +28,4 @@ class Client extends \Predis\Client
             }
         }
     }
-
-    public function executeCommand(CommandInterface $command)
-    {
-        $this->debug(strval($command));
-
-        return parent::executeCommand($command);
-    }
 }

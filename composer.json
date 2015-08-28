@@ -19,7 +19,7 @@
         }
     },    
     "require": {
-        "predis/predis": "v0.8.5",
+        "predis/predis": "~1.0",
         "symfony/event-dispatcher": "2.5.*",
         "symfony/process": "2.5.*",
         "symfony/console": "2.5.*",
