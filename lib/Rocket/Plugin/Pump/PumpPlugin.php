@@ -10,7 +10,7 @@ use Rocket\Queue\QueueInterface;
 use Rocket\Queue\QueueEvent;
 use Rocket\Worker\Worker;
 use Rocket\Worker\WorkerEvent;
-use Predis\ServerException;
+use Predis\Response\ServerException;
 
 class PumpPlugin extends AbstractPlugin
 {
