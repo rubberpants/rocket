@@ -2,7 +2,6 @@
 
 namespace Rocket\Redis;
 
-use Predis\Command\CommandInterface;
 use Predis\Connection\ConnectionException;
 
 class Client extends \Predis\Client

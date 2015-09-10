@@ -3,7 +3,7 @@
 namespace Rocket\Redis;
 
 use Predis\Connection\ConnectionException;
-use Predis\Connection\MasterSlaveReplication;
+use Predis\Connection\Aggregate\MasterSlaveReplication;
 use Rocket\Config\Config;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
@@ -92,6 +92,11 @@ class Redis implements RedisInterface
     public function getSortedSetType($key)
     {
         return new SortedSetType($this, $key);
+    }
+
+    public function getUniqueListType($key)
+    {
+        return new UniqueListType($this, $key);
     }
 
     public function promoteToMaster()

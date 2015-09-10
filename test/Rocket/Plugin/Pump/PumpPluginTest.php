@@ -18,17 +18,17 @@ class PumpPluginTest extends BaseTest
         return Harness::getInstance()->getPlugin('pump');
     }
 
-    public function testExecute()
+    public function testPumpReadyQueue()
     {
         $queue = Harness::getInstance()->getNewQueue();
 
         $plugin = $this->getPlugin();
-        $plugin->getReadyQueueSet()->delete();
+        $plugin->getReadyQueueList()->delete();
         $plugin->getReadyJobList('test')->delete();
 
         $queue->queueJob('Terror From the Year 5000', 'test');
 
-        list($jobId) = $plugin->execute(1, 1, 0);
+        list($jobId) = $plugin->pumpReadyQueue(1, 1);
 
         $job = $queue->getJob($jobId);
 
@@ -37,56 +37,78 @@ class PumpPluginTest extends BaseTest
         $this->assertTrue($job->getDeliverTime() instanceof \DateTime);
         $this->assertFalse($queue->getWaitingSet()->hasItem($jobId));
         $this->assertTrue($queue->getRunningSet()->hasItem($jobId));
-        $this->assertNull($queue->getWaitingList()->getItem(0));
+        $this->assertNull($queue->getWaitingList()->popItem());
+    }
+
+    public function testQueueScheduledJobs()
+    {
+        $queue = Harness::getInstance()->getNewQueue();
+
+        $plugin = $this->getPlugin();
+        $plugin->getScheduledSortedSet()->delete();
+        $plugin->getReadyJobList('test')->delete();
+
+        $queue->scheduleJob(new \DateTime(), 'Terror From the Year 5000', 'test');
+
+        list($jobId) = $plugin->queueScheduledJobs(1);
+
+        $job = $queue->getJob($jobId);
+
+        $this->assertEquals(Job::STATUS_WAITING, $job->getStatus());
+        $this->assertEquals('test', $job->getType());
+        $this->assertTrue($job->getQueueTime() instanceof \DateTime);
+        $this->assertTrue($queue->getWaitingSet()->hasItem($jobId));
+        $this->assertFalse($queue->getRunningSet()->hasItem($jobId));
+        $this->assertNotNull($queue->getWaitingList()->popItem());
     }
 
     public function testEvents()
     {
         $queue = Harness::getInstance()->getNewQueue();
 
-        $this->getPlugin()->getReadyQueueSet()->delete();
+        $this->getPlugin()->getReadyQueueList()->delete();
         $this->getPlugin()->getReadyJobList('test')->delete();
 
         $job = $queue->getJob('Deadliest Prey');
 
         $this->getPlugin()->getEventDispatcher()->dispatch(Job::EVENT_QUEUE, new JobEvent($job));
-        $this->assertTrue($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertEquals($queue->getQueueName(), $this->getPlugin()->getReadyQueueList()->popItem());
         $this->getPlugin()->getEventDispatcher()->dispatch(Queue::EVENT_DELETE, new QueueEvent($queue));
-        $this->assertFalse($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertNull($this->getPlugin()->getReadyQueueList()->popItem());
 
         $this->getPlugin()->getEventDispatcher()->dispatch(Job::EVENT_REQUEUE, new JobEvent($job));
-        $this->assertTrue($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertEquals($queue->getQueueName(), $this->getPlugin()->getReadyQueueList()->popItem());
         $this->getPlugin()->getEventDispatcher()->dispatch(Queue::EVENT_DELETE, new QueueEvent($queue));
-        $this->assertFalse($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertNull($this->getPlugin()->getReadyQueueList()->popItem());
 
         $this->getPlugin()->getEventDispatcher()->dispatch(Job::EVENT_MOVE, new JobEvent($job));
-        $this->assertTrue($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertEquals($queue->getQueueName(), $this->getPlugin()->getReadyQueueList()->popItem());
         $this->getPlugin()->getEventDispatcher()->dispatch(Queue::EVENT_DELETE, new QueueEvent($queue));
-        $this->assertFalse($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertNull($this->getPlugin()->getReadyQueueList()->popItem());
 
         $this->getPlugin()->getEventDispatcher()->dispatch(Job::EVENT_UNPARK, new JobEvent($job));
-        $this->assertTrue($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertEquals($queue->getQueueName(), $this->getPlugin()->getReadyQueueList()->popItem());
         $this->getPlugin()->getEventDispatcher()->dispatch(Queue::EVENT_DELETE, new QueueEvent($queue));
-        $this->assertFalse($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertNull($this->getPlugin()->getReadyQueueList()->popItem());
 
         $this->getPlugin()->getEventDispatcher()->dispatch(Job::EVENT_COMPLETE, new JobEvent($job));
-        $this->assertTrue($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertEquals($queue->getQueueName(), $this->getPlugin()->getReadyQueueList()->popItem());
         $this->getPlugin()->getEventDispatcher()->dispatch(Queue::EVENT_DELETE, new QueueEvent($queue));
-        $this->assertFalse($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertNull($this->getPlugin()->getReadyQueueList()->popItem());
 
         $this->getPlugin()->getEventDispatcher()->dispatch(Job::EVENT_FAIL, new JobEvent($job));
-        $this->assertTrue($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertEquals($queue->getQueueName(), $this->getPlugin()->getReadyQueueList()->popItem());
         $this->getPlugin()->getEventDispatcher()->dispatch(Queue::EVENT_DELETE, new QueueEvent($queue));
-        $this->assertFalse($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertNull($this->getPlugin()->getReadyQueueList()->popItem());
 
         $this->getPlugin()->getEventDispatcher()->dispatch(Queue::EVENT_UPDATE, new QueueEvent($queue));
-        $this->assertTrue($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertEquals($queue->getQueueName(), $this->getPlugin()->getReadyQueueList()->popItem());
         $this->getPlugin()->getEventDispatcher()->dispatch(Queue::EVENT_DELETE, new QueueEvent($queue));
-        $this->assertFalse($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertNull($this->getPlugin()->getReadyQueueList()->popItem());
 
         $this->getPlugin()->getEventDispatcher()->dispatch(Queue::EVENT_RESUME, new QueueEvent($queue));
-        $this->assertTrue($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertEquals($queue->getQueueName(), $this->getPlugin()->getReadyQueueList()->popItem());
         $this->getPlugin()->getEventDispatcher()->dispatch(Queue::EVENT_DELETE, new QueueEvent($queue));
-        $this->assertFalse($this->getPlugin()->getReadyQueueSet()->hasItem($queue->getQueueName()));
+        $this->assertNull($this->getPlugin()->getReadyQueueList()->popItem());
     }
 }

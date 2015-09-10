@@ -30,6 +30,11 @@ class JobsWorkCommand extends BaseCommand
 
         while (true) {
             try {
+                /*
+                    NOTE: In practice, to prevent job latency, this should be handled in a loop by a process other than a worker
+                */
+                $this->getRocket()->performOverheadTasks();
+
                 if ($worker->getNewJob(getmypid())) {
                     $worker->startCurrentJob();
 

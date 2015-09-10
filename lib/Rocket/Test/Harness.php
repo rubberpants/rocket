@@ -165,4 +165,8 @@ class Harness implements RocketInterface
     {
         $this->queues = $queues;
     }
+
+    public function performOverheadTasks($interval = 1)
+    {
+    }
 }

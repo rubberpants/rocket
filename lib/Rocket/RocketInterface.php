@@ -4,6 +4,7 @@ namespace Rocket;
 
 interface RocketInterface
 {
+    public function performOverheadTasks($interval = 1);
     public function getQueue($queueName, $maxCache = 16);
     public function getQueues();
     public function getQueueCount();

@@ -75,6 +75,24 @@ class Rocket implements RocketInterface
     }
 
     /**
+     * Distributes queued jobs to workers. Queues scheduled jobs. Triggers monitor events.
+     * This is typically called in a loop by a dedicated process. The interval determines the resolution of the
+     * scheduled jobs and monitor events, by blocking on the ready queue list for that amount of time.
+     * Returns a list of jobs that were pumped, if any.
+     *
+     * @param int $interval
+     *
+     * @return array(string)
+     */
+    public function performOverheadTasks($interval = 1)
+    {
+        $this->getPlugin('monitor')->execute($this->getConfig()->getOverheadMaxEventsToHandle());
+        $this->getPlugin('pump')->queueScheduledJobs($this->getConfig()->getOverheadMaxSchedJobsToQueue());
+
+        return $this->getPlugin('pump')->pumpReadyQueue($this->getConfig()->getOverheadMaxJobsToPump(), $interval);
+    }
+
+    /**
      * Get the names of the queues.
      *
      * @return array(string)

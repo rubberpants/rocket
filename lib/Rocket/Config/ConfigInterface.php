@@ -24,12 +24,11 @@ interface ConfigInterface
     public function getRouterDefaultExpr();
     public function getRouterRules();
     public function getWorkerJobWaitTimeout();
-    public function getWorkerMaxQueuesToPump();
-    public function getWorkerMaxJobsToPump();
-    public function getWorkerMaxEventsToHandle();
     public function getWorkerCommandTTL();
     public function getWorkerResolveTimeout();
     public function getWorkerMaxInactivity();
-    public function getTotalWorkerCount();
     public function getTopCacheTTL();
+    public function getOverheadMaxJobsToPump();
+    public function getOverheadMaxEventsToHandle();
+    public function getOverheadMaxSchedJobsToQueue();
 }

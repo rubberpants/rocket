@@ -16,7 +16,7 @@ class PumpPlugin extends AbstractPlugin
 {
     use \Rocket\ObjectCacheTrait;
 
-    protected $readyQueueSet;
+    protected $readyQueueList;
     protected $readyJobLists = [];
     protected $haltProcessingString;
     protected $pumpActivityString;
@@ -28,17 +28,17 @@ class PumpPlugin extends AbstractPlugin
     {
         $jobEventHandler = function (JobEvent $event) {
             $queue = $event->getJob()->getQueue();
-            $this->getReadyQueueSet()->addItem($queue->getQueueName());
+            $this->getReadyQueueList()->pushItem($queue->getQueueName());
         };
 
         $queueEventHandler = function (QueueEvent $event) {
             $queue = $event->getQueue();
-            $this->getReadyQueueSet()->addItem($queue->getQueueName());
+            $this->getReadyQueueList()->pushItem($queue->getQueueName());
         };
 
         $queueDeleteEventHandler = function (QueueEvent $event) {
             $queue = $event->getQueue();
-            $this->getReadyQueueSet()->deleteItem($queue->getQueueName());
+            $this->getReadyQueueList()->deleteItem($queue->getQueueName());
         };
 
         $addBusyWorkerEventHandler = function (WorkerEvent $event) {
@@ -69,13 +69,13 @@ class PumpPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Worker::EVENT_DELETE,    $removeBusyWorkerEventHandler);
     }
 
-    public function getReadyQueueSet()
+    public function getReadyQueueList()
     {
-        if (is_null($this->readyQueueSet)) {
-            $this->readyQueueSet = $this->getRedis()->getSetType('READY_QUEUES');
+        if (is_null($this->readyQueueList)) {
+            $this->readyQueueList = $this->getRedis()->getUniqueListType('READY_QUEUE_LIST');
         }
 
-        return $this->readyQueueSet;
+        return $this->readyQueueList;
     }
 
     public function getReadyJobList($jobType)
@@ -126,31 +126,9 @@ class PumpPlugin extends AbstractPlugin
         $this->getHaltProcessingString()->off();
     }
 
-    public function execute($maxQueuesToPump, $maxJobsToPump, $maxSchedJobsToQueue)
+    public function isHaltProcessing()
     {
-        $jobsPumped = [];
-
-        if ($this->getHaltProcessingString()->isOn()) {
-            return;
-        }
-
-        if ($maxSchedJobsToQueue > 0) {
-            $this->queueScheduledJobs($maxSchedJobsToQueue);
-        }
-
-        if ($maxQueuesToPump > 0 && $maxJobsToPump > 0) {
-            while ($maxQueuesToPump-- > 0) {
-                if ($queueName = $this->getReadyQueueSet()->popItem()) {
-                    if ($queue = $this->getRocket()->getQueue($queueName)) {
-                        $jobsPumped += $this->pumpQueue($queue, $maxJobsToPump);
-                    }
-                } else {
-                    break;
-                }
-            }
-        }
-
-        return $jobsPumped;
+        return $this->getHaltProcessingString()->isOn();
     }
 
     /*
@@ -175,7 +153,11 @@ class PumpPlugin extends AbstractPlugin
 
     public function getWorkerUtilization()
     {
-        $totalWorkers = $this->getConfig()->getTotalWorkerCount();
+        $totalWorkers = 0;
+
+        if ($plugin = $this->getRocket()->getPlugin('aggregate')) {
+            $totalWorkers = $plugin->getAllWorkersSet()->getCount();
+        }
 
         if ($totalWorkers <= 0) {
             return 1.0;
@@ -189,7 +171,25 @@ class PumpPlugin extends AbstractPlugin
         return $percent;
     }
 
-    protected function pumpQueue(QueueInterface $queue, $maxJobsToPump)
+    public function pumpReadyQueue($maxJobsToPump, $timeout)
+    {
+        $jobsPumped = [];
+
+        if ($this->isHaltProcessing()) {
+            sleep($timeout);
+            return [];
+        }
+
+        if ($queueName = $this->getReadyQueueList()->blockAndPopItem($timeout)) {
+            if ($queue = $this->getRocket()->getQueue($queueName)) {
+                $jobsPumped += $this->pumpQueue($queue, $maxJobsToPump);
+            }
+        }
+
+        return $jobsPumped;
+    }
+
+    public function pumpQueue(QueueInterface $queue, $maxJobsToPump)
     {
         $jobsPumped = $this->executePumpLuaScript(
             $queue->getQueueName(),
@@ -207,8 +207,10 @@ class PumpPlugin extends AbstractPlugin
         return $jobsPumped;
     }
 
-    protected function queueScheduledJobs($maxJobsToQueue)
+    public function queueScheduledJobs($maxJobsToQueue)
     {
+        $jobsQueued = [];
+
         foreach ($this->executeScheduleLuaScript($this->getScheduledSortedSet()->getKey(), time(), $maxJobsToQueue) as $jobInfo) {
             list($jobId, $queueName) = json_decode($jobInfo, true);
             $job = $this->getRocket()->getQueue($queueName)->getJob($jobId);
@@ -216,10 +218,13 @@ class PumpPlugin extends AbstractPlugin
                 $this->info(sprintf('Queuing scheduled job %s into %s', $job->getId(), $job->getQueueName()));
                 $job->getQueue()->queueJob($job->getJob(), $job->getType(), $job->getId(), $job->getMaxRuntime());
                 $this->getScheduledSortedSet()->deleteItem($jobInfo);
+                $jobsQueued[] = $jobId;
             } else {
                 $this->warning(sprintf('Scheduled job does not exist: %s', $jobInfo));
             }
         }
+
+        return $jobsQueued;
     }
 
     protected function executeScheduleLuaScript($scheduleSortSetKey, $timestamp, $maxJobsToQueue)

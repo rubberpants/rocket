@@ -42,13 +42,15 @@ class WorkerTest extends BaseTest
 
         $queue = Harness::getInstance()->getNewQueue();
 
-        Harness::getInstance()->getPlugin('pump')->getReadyQueueSet()->delete();
+        Harness::getInstance()->getPlugin('pump')->getReadyQueueList()->delete();
         Harness::getInstance()->getPlugin('pump')->getReadyJobList('test')->delete();
         Harness::getInstance()->getPlugin('monitor')->getEventsSortedSet()->delete();
 
         $queue->queueJob('The Crawling Eye', 'test');
 
         $this->monitorEvent(Job::EVENT_DELIVER);
+
+        Harness::getInstance()->getPlugin('pump')->pumpReadyQueue(1, 1);
 
         $this->assertTrue($worker->getNewJob('test', 'Elvis killed JFK'));
         $this->assertEquals(Job::STATUS_DELIVERED, $worker->getCurrentJob()->getStatus());
@@ -121,7 +123,6 @@ class WorkerTest extends BaseTest
         $this->assertTrue($worker->completeCurrentJob());
         $this->assertEquals(1, $worker->getJobsCompleted());
         $this->assertGreaterThan(0, $worker->getTotalTimeBusy());
-        $this->assertEquals(1, $worker->getOverheadCount());
         $this->assertEquals(time(), $worker->getLastJobDone());
         $this->assertFalse($worker->getHash()->fieldExists(Worker::FIELD_CURRENT_JOB));
         $this->assertFalse($worker->getHash()->fieldExists(Worker::FIELD_CURRENT_QUEUE));
@@ -134,11 +135,13 @@ class WorkerTest extends BaseTest
 
         $queue = Harness::getInstance()->getNewQueue();
 
-        Harness::getInstance()->getPlugin('pump')->getReadyQueueSet()->delete();
+        Harness::getInstance()->getPlugin('pump')->getReadyQueueList()->delete();
         Harness::getInstance()->getPlugin('pump')->getReadyJobList('test')->delete();
         Harness::getInstance()->getPlugin('monitor')->getEventsSortedSet()->delete();
 
         $queue->queueJob('Cave Dwellers', 'test');
+
+        Harness::getInstance()->getPlugin('pump')->pumpReadyQueue(1, 1);
 
         $this->assertTrue($worker->getNewJob('test'));
         $this->assertTrue($worker->startCurrentJob());
@@ -161,7 +164,6 @@ class WorkerTest extends BaseTest
 
         $this->assertEquals(1, $worker->getJobsFailed());
         $this->assertGreaterThan(0, $worker->getTotalTimeBusy());
-        $this->assertEquals(1, $worker->getOverheadCount());
         $this->assertEquals(time(), $worker->getLastJobDone());
         $this->assertEquals(Job::STATUS_FAILED, $job->getStatus());
         $this->assertEquals('Your cape is fabulous!', $job->getFailureMessage());
@@ -176,11 +178,13 @@ class WorkerTest extends BaseTest
 
         $queue = Harness::getInstance()->getNewQueue();
 
-        Harness::getInstance()->getPlugin('pump')->getReadyQueueSet()->delete();
+        Harness::getInstance()->getPlugin('pump')->getReadyQueueList()->delete();
         Harness::getInstance()->getPlugin('pump')->getReadyJobList('test')->delete();
         Harness::getInstance()->getPlugin('monitor')->getEventsSortedSet()->delete();
 
         $queue->queueJob('Red Zone Cuba', 'test');
+
+        Harness::getInstance()->getPlugin('pump')->pumpReadyQueue(1, 1);
 
         $this->assertTrue($worker->getNewJob('test'));
         $this->assertTrue($worker->startCurrentJob());
@@ -200,7 +204,6 @@ class WorkerTest extends BaseTest
 
         $this->assertEquals(2, $worker->getJobsFailed());
         $this->assertGreaterThan(0, $worker->getTotalTimeBusy());
-        $this->assertEquals(2, $worker->getOverheadCount());
         $this->assertEquals(time(), $worker->getLastJobDone());
         $this->assertEquals(Job::STATUS_SCHEDULED, $job->getStatus());
         $this->assertEquals($retryTime->format(\DateTime::ISO8601), $job->getScheduledTime()->format(\DateTime::ISO8601));

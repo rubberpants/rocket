@@ -16,7 +16,6 @@ class Worker implements WorkerInterface
     use \Rocket\Redis\RedisTrait;
 
     const EVENT_ACTIVITY   = 'worker.activity';
-    const EVENT_OVERHEAD   = 'worker.overhead';
     const EVENT_JOB_START  = 'worker.job_start';
     const EVENT_JOB_DONE   = 'worker.job_done';
     const EVENT_JOB_PAUSE  = 'worker.job_pause';
@@ -34,7 +33,6 @@ class Worker implements WorkerInterface
     const FIELD_JOBS_STARTED    = 'jobs_started';
     const FIELD_JOBS_COMPLETED  = 'jobs_completed';
     const FIELD_JOBS_FAILED     = 'jobs_failed';
-    const FIELD_OVERHEAD_COUNT  = 'overhead_count';
     const FIELD_LAST_JOB_START  = 'last_job_start';
     const FIELD_LAST_JOB_DONE   = 'last_job_done';
     const FIELD_TOTAL_TIME_IDLE = 'total_time_idle';
@@ -47,7 +45,6 @@ class Worker implements WorkerInterface
     protected $rocket;
     protected $workerName;
     protected $pump;
-    protected $monitor;
     protected $currentJob;
     protected $hash;
 
@@ -57,7 +54,6 @@ class Worker implements WorkerInterface
         $this->workerName = $workerName;
         $this->setLogContext('worker', $workerName);
         $this->pump = $rocket->getPlugin('pump');
-        $this->monitor = $rocket->getPlugin('monitor');
     }
 
     /**
@@ -168,16 +164,6 @@ class Worker implements WorkerInterface
     }
 
     /**
-     * Get the total number of time this worker has performed overhead tasks.
-     *
-     * @return integer
-     */
-    public function getOverheadCount()
-    {
-        return $this->getHash()->getField(self::FIELD_OVERHEAD_COUNT);
-    }
-
-    /**
      * Get the timestamp of the last started job.
      *
      * @return integer
@@ -263,20 +249,19 @@ class Worker implements WorkerInterface
     /**
      * Perform some overhaead tasks, then wait to recieve a job of the specified type.
      * If no job of the specified type was available, returns false. If a command is waiting the worker a WorkerCommandException
-     * will be thrown. Optionally specify a string of info to set for the worker. Optionally set the probability
-     * that the worker will perform some overhead tasks before getting a job. The default is 1.0, always do overhead tasks.
+     * will be thrown. Optionally specify a string of info to set for the worker and the time to wait for a job.
      *
      * If returns true, then getCurrentJob() will have the job object that was recieved.
      *
      * @param string $jobType
      * @param string $workerInfo
-     * @param float  $overheadProbability
+     * @param int    $timeout
      *
      * @throws WorkerCommandException
      *
      * @return boolean
      */
-    public function getNewJob($jobType = 'default', $workerInfo = null, $overheadProbability = 1.0, $timeout = null)
+    public function getNewJob($jobType = 'default', $workerInfo = null, $timeout = null)
     {
         $this->activity();
 
@@ -301,11 +286,6 @@ class Worker implements WorkerInterface
         }
 
         $timeout = $timeout ?: $this->getConfig()->getWorkerJobWaitTimeout();
-
-        if ($this->randomFloat() <= $overheadProbability) {
-            $this->performOverheadTasks();
-            $this->getHash()->incField(self::FIELD_OVERHEAD_COUNT);
-        }
 
         $job = $this->pump->getReadyJobList($jobType)->blockAndPopItem($timeout);
 
@@ -525,17 +505,6 @@ class Worker implements WorkerInterface
     }
 
     /**
-     * Perform some overhead tasks.
-     */
-    public function performOverheadTasks()
-    {
-        $this->getEventDispatcher()->dispatch(self::EVENT_OVERHEAD, new WorkerEvent($this));
-        $this->pump->execute($this->getConfig()->getWorkerMaxQueuesToPump(), $this->getConfig()->getWorkerMaxJobsToPump(), $this->getConfig()->getWorkerMaxSchedJobsToQueue());
-        $this->monitor->execute($this->getConfig()->getWorkerMaxEventsToHandle());
-        /* Add addtl. overhead tasks here */
-    }
-
-    /**
      * Reset the tracking statistics for this worker.
      */
     public function resetStats()
@@ -546,7 +515,6 @@ class Worker implements WorkerInterface
         $this->getHash()->deleteField(self::FIELD_JOBS_STARTED);
         $this->getHash()->deleteField(self::FIELD_JOBS_COMPLETED);
         $this->getHash()->deleteField(self::FIELD_JOBS_FAILED);
-        $this->getHash()->deleteField(self::FIELD_OVERHEAD_COUNT);
         $this->getHash()->deleteField(self::FIELD_LAST_JOB_START);
         $this->getHash()->deleteField(self::FIELD_LAST_JOB_DONE);
         $this->getHash()->deleteField(self::FIELD_TOTAL_TIME_IDLE);
@@ -563,19 +531,6 @@ class Worker implements WorkerInterface
         $this->getRedis()->openPipeline();
         $this->getHash()->delete();
         $this->getRedis()->closePipeline();
-    }
-
-    /**
-     * Return a random floating point number between $min and $max.
-     *
-     * @param float $min
-     * @param float $max
-     *
-     * @return float
-     */
-    protected function randomFloat($min = 0, $max = 1)
-    {
-        return $min + mt_rand() / mt_getrandmax() * ($max - $min);
     }
 
     /**

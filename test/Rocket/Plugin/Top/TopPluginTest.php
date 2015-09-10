@@ -27,7 +27,10 @@ class TopPluginTest extends BaseTest
     {
         parent::setup();
 
-        Harness::getInstance()->getPlugin('aggregate');
+        $plugin = Harness::getInstance()->getPlugin('aggregate');
+
+        $plugin->getAllWaitingJobsSet()->delete();
+        $plugin->getAllRunningJobsSet()->delete();
 
         $runningQueue = Harness::getInstance()->getNewQueue();
         $runningJob = $runningQueue->queueJob('Jackmerius Tacktheritrix');

@@ -12,7 +12,6 @@ interface WorkerInterface
     public function getJobsStarted();
     public function getJobsCompleted();
     public function getJobsFailed();
-    public function getOverheadCount();
     public function getLastJobStart();
     public function getLastJobDone();
     public function getTotalTimeIdle();
@@ -20,7 +19,7 @@ interface WorkerInterface
     public function setCommand($command);
     public function clearCommand();
     public function getInfo();
-    public function getNewJob($jobType = 'default', $workerInfo = null, $overhead = 1.0, $timeout = null);
+    public function getNewJob($jobType = 'default', $workerInfo = null, $timeout = null);
     public function startCurrentJob();
     public function progressCurrentJob($progress);
     public function pauseCurrentJob();
@@ -28,7 +27,6 @@ interface WorkerInterface
     public function stopCurrentJob();
     public function completeCurrentJob();
     public function failCurrentJob($failureMessage);
-    public function performOverheadTasks();
     public function resetStats();
     public function delete();
 }

@@ -163,26 +163,6 @@ class Config implements ConfigInterface
         return $this->get('worker.job_wait_timeout', 10);
     }
 
-    public function getWorkerMaxQueuesToPump()
-    {
-        return $this->get('worker.max_queues_to_pump', 4);
-    }
-
-    public function getWorkerMaxJobsToPump()
-    {
-        return $this->get('worker.max_jobs_to_pump', 4);
-    }
-
-    public function getWorkerMaxEventsToHandle()
-    {
-        return $this->get('worker.max_events_to_handle', 10);
-    }
-
-    public function getWorkerMaxSchedJobsToQueue()
-    {
-        return $this->get('worker.max_sched_jobs_to_queue', 6);
-    }
-
     public function getWorkerCommandTTL()
     {
         return $this->get('worker.command_ttl', 600);
@@ -198,13 +178,23 @@ class Config implements ConfigInterface
         return $this->get('worker.max_inactivity', 60 * 60 * 24);
     }
 
-    public function getTotalWorkerCount()
-    {
-        return $this->get('total_worker_count', 2);
-    }
-
     public function getTopCacheTTL()
     {
         return $this->get('top.cache_ttl', 30);
+    }
+
+    public function getOverheadMaxJobsToPump()
+    {
+        return $this->get('overhead.max_jobs_to_pump', 4);
+    }
+
+    public function getOverheadMaxEventsToHandle()
+    {
+        return $this->get('overhead.max_events_to_handle', 10);
+    }
+
+    public function getOverheadMaxSchedJobsToQueue()
+    {
+        return $this->get('overhead.max_sched_jobs_to_queue', 6);
     }
 }
