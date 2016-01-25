@@ -203,6 +203,8 @@ class Queue implements QueueInterface
         $this->getScheduledSet()->deleteItem($job->getId());
         $this->getRedis()->closePipeline();
 
+        $this->rocket->getJobsQueueHash()->setField($id, $this->getQueueName());
+
         $this->getEventDispatcher()->dispatch(Job::EVENT_QUEUE, new JobEvent($job));
 
         $this->info(sprintf('Job %s added to queue', $id));
@@ -220,6 +222,12 @@ class Queue implements QueueInterface
      */
     public function moveJob(JobInterface &$job)
     {
+        /*
+            With the move to redis cluster, moving jobs between queues is not currently supported, but may be supported
+            in the future.
+        */
+        throw new \Exception('Moving jobs between queues not currently supported');
+
         if ($job->getQueueName() == $this->getQueueName()) {
             return false;
         }
@@ -351,27 +359,22 @@ class Queue implements QueueInterface
             throw new RocketException('Cannot delete queue because it still has jobs');
         }
 
-        if ($this->getQueuesSet()->deleteItem($this->getQueueName())) {
-            $this->getRedis()->openPipeline();
-            $this->getWaitingList()->delete();
-            $this->getWaitingSet()->delete();
-            $this->getParkedSet()->delete();
-            $this->getRunningSet()->delete();
-            $this->getCancelledSet()->delete();
-            $this->getFailedSet()->delete();
-            $this->getCompletedSet()->delete();
-            $this->getScheduledSet()->delete();
-            $this->getRedis()->closePipeline();
+        $this->getRedis()->openPipeline();
+        $this->getQueuesSet()->deleteItem($this->getQueueName());
+        $this->getWaitingList()->delete();
+        $this->getWaitingSet()->delete();
+        $this->getParkedSet()->delete();
+        $this->getRunningSet()->delete();
+        $this->getCancelledSet()->delete();
+        $this->getFailedSet()->delete();
+        $this->getCompletedSet()->delete();
+        $this->getScheduledSet()->delete();
+        $this->getRedis()->closePipeline();
 
-            $this->getEventDispatcher()->dispatch(self::EVENT_DELETE, new QueueEvent($this));
-            $this->info('Queue deleted');
+        $this->getEventDispatcher()->dispatch(self::EVENT_DELETE, new QueueEvent($this));
+        $this->info('Queue deleted');
 
-            return true;
-        }
-
-        $this->warning('Failed to delete queue');
-
-        throw new RocketException('Failed to delete queue');
+        return true;
     }
 
     public function isDisabled()
@@ -536,6 +539,11 @@ class Queue implements QueueInterface
     public function getScheduledSortedSet()
     {
         return $this->rocket->getPlugin('pump')->getScheduledSortedSet();
+    }
+
+    public function getRocket()
+    {
+        return $this->rocket;
     }
 
     protected function initNewJobObject($id, $type, $jobData, $maxRuntime, $jobDigest)

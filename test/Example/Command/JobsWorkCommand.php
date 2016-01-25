@@ -35,7 +35,7 @@ class JobsWorkCommand extends BaseCommand
                 */
                 $this->getRocket()->performOverheadTasks();
 
-                if ($worker->getNewJob(getmypid())) {
+                if ($worker->getNewJob()) {
                     $worker->startCurrentJob();
 
                     $job = json_decode($worker->getCurrentJob()->getJob(), true);

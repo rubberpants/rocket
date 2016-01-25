@@ -22,7 +22,7 @@ trait QueueDataStructuresTrait
     public function getWaitingList()
     {
         if (is_null($this->waitingList)) {
-            $this->waitingList = $this->getRedis()->getListType(sprintf('QUEUE:%s', $this->getQueueName()));
+            $this->waitingList = $this->getRedis()->getListType(sprintf('QUEUE:{%s}', $this->getQueueName()));
         }
 
         return $this->waitingList;
@@ -31,7 +31,7 @@ trait QueueDataStructuresTrait
     public function getWaitingSet()
     {
         if (is_null($this->waitingSet)) {
-            $this->waitingSet = $this->getRedis()->getSetType(sprintf('QUEUE:%s:WAITING', $this->getQueueName()));
+            $this->waitingSet = $this->getRedis()->getSetType(sprintf('QUEUE:{%s}:WAITING', $this->getQueueName()));
         }
 
         return $this->waitingSet;
@@ -40,7 +40,7 @@ trait QueueDataStructuresTrait
     public function getParkedSet()
     {
         if (is_null($this->parkedSet)) {
-            $this->parkedSet = $this->getRedis()->getSetType(sprintf('QUEUE:%s:PARKED', $this->getQueueName()));
+            $this->parkedSet = $this->getRedis()->getSetType(sprintf('QUEUE:{%s}:PARKED', $this->getQueueName()));
         }
 
         return $this->parkedSet;
@@ -49,7 +49,7 @@ trait QueueDataStructuresTrait
     public function getRunningSet()
     {
         if (is_null($this->runningSet)) {
-            $this->runningSet = $this->getRedis()->getSetType(sprintf('QUEUE:%s:RUNNING', $this->getQueueName()));
+            $this->runningSet = $this->getRedis()->getSetType(sprintf('QUEUE:{%s}:RUNNING', $this->getQueueName()));
         }
 
         return $this->runningSet;
@@ -58,7 +58,7 @@ trait QueueDataStructuresTrait
     public function getPausedSet()
     {
         if (is_null($this->pausedSet)) {
-            $this->pausedSet = $this->getRedis()->getSetType(sprintf('QUEUE:%s:PAUSED', $this->getQueueName()));
+            $this->pausedSet = $this->getRedis()->getSetType(sprintf('QUEUE:{%s}:PAUSED', $this->getQueueName()));
         }
 
         return $this->pausedSet;
@@ -67,7 +67,7 @@ trait QueueDataStructuresTrait
     public function getCancelledSet()
     {
         if (is_null($this->cancelledSet)) {
-            $this->cancelledSet = $this->getRedis()->getSetType(sprintf('QUEUE:%s:CANCELLED', $this->getQueueName()));
+            $this->cancelledSet = $this->getRedis()->getSetType(sprintf('QUEUE:{%s}:CANCELLED', $this->getQueueName()));
         }
 
         return $this->cancelledSet;
@@ -76,7 +76,7 @@ trait QueueDataStructuresTrait
     public function getFailedSet()
     {
         if (is_null($this->failedSet)) {
-            $this->failedSet = $this->getRedis()->getSetType(sprintf('QUEUE:%s:FAILED', $this->getQueueName()));
+            $this->failedSet = $this->getRedis()->getSetType(sprintf('QUEUE:{%s}:FAILED', $this->getQueueName()));
         }
 
         return $this->failedSet;
@@ -85,7 +85,7 @@ trait QueueDataStructuresTrait
     public function getCompletedSet()
     {
         if (is_null($this->completedSet)) {
-            $this->completedSet = $this->getRedis()->getSetType(sprintf('QUEUE:%s:COMPLETED', $this->getQueueName()));
+            $this->completedSet = $this->getRedis()->getSetType(sprintf('QUEUE:{%s}:COMPLETED', $this->getQueueName()));
         }
 
         return $this->completedSet;
@@ -94,7 +94,7 @@ trait QueueDataStructuresTrait
     public function getPausedString()
     {
         if (is_null($this->pausedString)) {
-            $this->pausedString = $this->getRedis()->getStringType(sprintf('QUEUE:%s:IS_PAUSED', $this->getQueueName()));
+            $this->pausedString = $this->getRedis()->getStringType(sprintf('QUEUE:{%s}:IS_PAUSED', $this->getQueueName()));
         }
 
         return $this->pausedString;
@@ -103,7 +103,7 @@ trait QueueDataStructuresTrait
     public function getDisabledString()
     {
         if (is_null($this->disabledString)) {
-            $this->disabledString = $this->getRedis()->getStringType(sprintf('QUEUE:%s:IS_DISABLED', $this->getQueueName()));
+            $this->disabledString = $this->getRedis()->getStringType(sprintf('QUEUE:{%s}:IS_DISABLED', $this->getQueueName()));
         }
 
         return $this->disabledString;
@@ -121,7 +121,7 @@ trait QueueDataStructuresTrait
     public function getScheduledSet()
     {
         if (is_null($this->scheduledSet)) {
-            $this->scheduledSet = $this->getRedis()->getSetType(sprintf('QUEUE:%s:SCHEDULED', $this->getQueueName()));
+            $this->scheduledSet = $this->getRedis()->getSetType(sprintf('QUEUE:{%s}:SCHEDULED', $this->getQueueName()));
         }
 
         return $this->scheduledSet;

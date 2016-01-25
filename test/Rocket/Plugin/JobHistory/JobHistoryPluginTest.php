@@ -46,6 +46,7 @@ class JobHistoryPluginTest extends BaseTest
         });
     }
 
+    /*
     public function testJobMove()
     {
         $plugin = $this->getPlugin();
@@ -57,6 +58,7 @@ class JobHistoryPluginTest extends BaseTest
             return $value->getEventName() == Job::EVENT_MOVE && $value->getDetails() == $queue2->getQueueName();
         });
     }
+    */
 
     public function testJobPark()
     {

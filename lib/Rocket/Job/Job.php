@@ -89,7 +89,7 @@ class Job implements JobInterface
     public function getHash()
     {
         if (is_null($this->hash)) {
-            $this->hash = $this->getRedis()->getHashType(sprintf('JOB:%s', $this->getId()));
+            $this->hash = $this->getRedis()->getHashType(sprintf('JOB:{%s}:%s', $this->queue->getQueueName(), $this->getId()));
         }
 
         return $this->hash;
@@ -103,7 +103,7 @@ class Job implements JobInterface
     public function getHistoryList()
     {
         if (is_null($this->historyList)) {
-            $this->historyList = $this->getRedis()->getListType(sprintf('JOB:%s:HISTORY', $this->getId()));
+            $this->historyList = $this->getRedis()->getListType(sprintf('JOB:{%s}:%s:HISTORY', $this->queue->getQueueName(), $this->getId()));
         }
 
         return $this->historyList;
@@ -556,29 +556,26 @@ class Job implements JobInterface
      */
     public function delete()
     {
-        if ($this->getHash()->delete()) {
-            $this->getRedis()->openPipeline();
-            $this->getHistoryList()->delete();
-            $this->getQueue()->getWaitingList()->deleteItem($this->getId());
-            $this->getQueue()->getWaitingSet()->deleteItem($this->getId());
-            $this->getQueue()->getParkedSet()->deleteItem($this->getId());
-            $this->getQueue()->getRunningSet()->deleteItem($this->getId());
-            $this->getQueue()->getCancelledSet()->deleteItem($this->getId());
-            $this->getQueue()->getFailedSet()->deleteItem($this->getId());
-            $this->getQueue()->getCompletedSet()->deleteItem($this->getId());
-            $this->getQueue()->getScheduledSet()->deleteItem($this->getId());
-            $this->getQueue()->getScheduledSortedSet()->deleteItem($this->getId());
-            $this->getRedis()->closePipeline();
+        $this->getRedis()->openPipeline();
+        $this->getHash()->delete();
+        $this->getHistoryList()->delete();
+        $this->getQueue()->getWaitingList()->deleteItem($this->getId());
+        $this->getQueue()->getWaitingSet()->deleteItem($this->getId());
+        $this->getQueue()->getParkedSet()->deleteItem($this->getId());
+        $this->getQueue()->getRunningSet()->deleteItem($this->getId());
+        $this->getQueue()->getCancelledSet()->deleteItem($this->getId());
+        $this->getQueue()->getFailedSet()->deleteItem($this->getId());
+        $this->getQueue()->getCompletedSet()->deleteItem($this->getId());
+        $this->getQueue()->getScheduledSet()->deleteItem($this->getId());
+        $this->getQueue()->getScheduledSortedSet()->deleteItem($this->getId());
+        $this->getRedis()->closePipeline();
 
-            $this->getEventDispatcher()->dispatch(self::EVENT_DELETE, new JobEvent($this));
-            $this->info('Job deleted');
+        $this->getQueue()->getRocket()->getJobsQueueHash()->deleteField($this->getId());
 
-            return true;
-        }
+        $this->getEventDispatcher()->dispatch(self::EVENT_DELETE, new JobEvent($this));
+        $this->info('Job deleted');
 
-        $this->warning('Job delete failed');
-
-        throw new RocketException('Job delete failed');
+        return true;
     }
 
     /**
@@ -658,6 +655,16 @@ class Job implements JobInterface
 
         $this->getHash()->clearCache();
 
+        if ($this->getStatus() == self::STATUS_RUNNING) {
+            if ($this->getWorkerName() === $workerName) {
+                return true;
+            } else {
+                $other = $this->getHash()->getField(self::FIELD_WORKER_NAME, true);
+                $this->warning(sprintf('Job started by worker %s already started by %s', $workerName, $other));
+                throw new RocketException(sprintf('Job started by worker %s already started by %s', $workerName, $other));
+            }
+        }
+
         if ($this->getStatus() !== self::STATUS_DELIVERED) {
             $this->warning('Could not start job because it has not been delivered');
             throw new RocketException('Could not start job because it has not been delivered');
@@ -669,11 +676,6 @@ class Job implements JobInterface
         $this->getHash()->setField(self::FIELD_START_TIME, (new \DateTime())->format(\DateTime::ISO8601));
         $this->getHash()->incField(self::FIELD_ATTEMPTS);
         $this->getRedis()->closePipeline($timeout);
-
-        if (($other = $this->getHash()->getField(self::FIELD_WORKER_NAME, true)) !== $workerName) {
-            $this->warning(sprintf('Job started by worker %s already started by %s', $workerName, $other));
-            throw new RocketException(sprintf('Job started by worker %s already started by %s', $workerName, $other));
-        }
 
         $this->getEventDispatcher()->dispatch(self::EVENT_START, new JobEvent($this));
         $this->info(sprintf('Job started by worker %s', $workerName));

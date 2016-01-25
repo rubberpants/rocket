@@ -8,7 +8,7 @@ interface QueueInterface
 {
     public function init();
     public function getQueueName();
-    public function moveJob(JobInterface &$job);
+    //public function moveJob(JobInterface &$job);
     public function scheduleJob(\DateTime $time, $jobData, $type = 'default', $id = null, $maxRuntime = 0);
     public function queueJob($job, $type = 'default', $id = null, $maxRuntime = 0);
     public function getWaitingLimit();
@@ -43,4 +43,5 @@ interface QueueInterface
     public function getAllJobCount();
     public function getJobsByStatus($status);
     public function flushJobsByStatus($status);
+    public function getRocket();
 }

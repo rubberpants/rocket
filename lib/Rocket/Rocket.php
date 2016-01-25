@@ -21,7 +21,7 @@ class Rocket implements RocketInterface
 
     protected $queuesSet;
     protected $plugins = [];
-    protected $jobQueueMap = [];
+    protected $jobsQueueHash;
 
     /**
      * Creates a new instance of the main object.
@@ -155,17 +155,13 @@ class Rocket implements RocketInterface
      */
     public function getQueueNameByJobId($jobId)
     {
-        if (array_key_exists($jobId, $this->jobQueueMap)) {
-            return $this->jobQueueMap[$jobId];
-        } else {
-            $queueName = $this->getRedis()->getClient()->hget(sprintf('JOB:%s', $jobId), 'queue_name');
-            if (!$queueName) {
-                throw new RocketException(sprintf('Job %s does not exist', $jobId));
-            }
-            $this->jobQueueMap[$jobId] = $queueName;
+        $queueName = $this->getJobsQueueHash()->getField($jobId);
 
-            return $queueName;
+        if (!$queueName) {
+            throw new RocketException(sprintf('Job %s does not exist', $jobId));
         }
+
+        return $queueName;
     }
 
     /**
@@ -213,5 +209,19 @@ class Rocket implements RocketInterface
         }
 
         return $this->queuesSet;
+    }
+
+    /**
+     * Get a redis type wrapper for the jobs to queues map.
+     *
+     * @return HashType
+     */
+    public function getJobsQueueHash()
+    {
+        if (is_null($this->jobsQueueHash)) {
+            $this->jobsQueueHash = $this->getRedis()->getHashType('JOBS_QUEUE');
+        }
+
+        return $this->jobsQueueHash;
     }
 }

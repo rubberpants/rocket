@@ -3,6 +3,7 @@
 namespace Rocket\Test;
 
 use Rocket\RocketInterface;
+use Rocket\RocketException;
 use Rocket\Singleton;
 use Rocket\Config\Config;
 use Rocket\Config\ConfigTrait;
@@ -32,11 +33,10 @@ class Harness implements RocketInterface
     protected $monitor;
     protected $aggregate;
     protected $queues;
+    protected $jobsQueueHash;
 
     public function flushTestDatabases()
     {
-        $this->getLogger()->warning('Flushing test databases!');
-        $this->getRedis()->getClient()->flushdb();
     }
 
     public function getLogger()
@@ -57,7 +57,16 @@ class Harness implements RocketInterface
     public function getConfig()
     {
         if (is_null($this->config)) {
-            $this->config = new Config(json_decode(file_get_contents(__DIR__.self::TEST_CONFIG_FILENAME), true));
+
+            $configuration = json_decode(file_get_contents(__DIR__.self::TEST_CONFIG_FILENAME), true);
+
+            //Override for travis.ci builds. Until it supports redis cluster mode.
+            if (getenv('TRAVIS')) {
+                $configuration['redis_connections'] = "tcp://127.0.0.1:6379";
+                $configuration['redis_options'] = [];
+            }
+
+            $this->config = new Config($configuration);
         }
 
         return $this->config;
@@ -109,6 +118,10 @@ class Harness implements RocketInterface
 
     public function getJob($jobId, $queueName = null, $maxCache = 16)
     {
+        if (is_null($queueName)) {
+            $queueName = $this->getQueueNameByJobId($jobId);
+        }
+
         return $this->getQueue($queueName, $maxCache)->getJob($jobId);
     }
 
@@ -149,6 +162,22 @@ class Harness implements RocketInterface
 
     public function getQueueNameByJobId($jobId)
     {
+        $queueName = $this->getJobsQueueHash()->getField($jobId);
+
+        if (!$queueName) {
+            throw new RocketException(sprintf('Job %s does not exist', $jobId));
+        }
+
+        return $queueName;
+    }
+
+    public function getJobsQueueHash()
+    {
+        if (is_null($this->jobsQueueHash)) {
+            $this->jobsQueueHash = $this->getRedis()->getHashType('JOBS_QUEUE');
+        }
+
+        return $this->jobsQueueHash;
     }
 
     public function getQueueCount()

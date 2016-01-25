@@ -3,7 +3,6 @@
 namespace Rocket\Redis;
 
 use Predis\Connection\ConnectionException;
-use Predis\Connection\Aggregate\MasterSlaveReplication;
 use Rocket\Config\Config;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
@@ -114,28 +113,19 @@ class Redis implements RedisInterface
         return $this->getClient()->info('all');
     }
 
-    public function isRunning()
-    {
-        return $this->getClient()->ping() == 'PONG';
-    }
-
     protected function createClient()
     {
         try {
-            $options = [
-                'prefix' => $this->getConfig()->getApplicationName().':',
-            ];
-
             $connections = $this->getConfig()->getRedisConnections();
 
-            if (count($connections) > 1) {
-                $options['replication'] = new MasterSlaveReplication();
-            }
+            $options = $this->getConfig()->getRedisOptions();
+            $options['prefix'] = $this->getConfig()->getApplicationName().':';
 
             $client = new Client($connections, $options);
 
             $client->setLogger($this->getLogger());
             $client->setLogContext('conn', $connections);
+            $client->setLogContext('opt', $options);
             $client->setEventDispatcher($this->getEventDispatcher());
 
             $this->getEventDispatcher()->dispatch(Client::EVENT_CONNECT, new ClientEvent($client));

@@ -247,7 +247,7 @@ class Worker implements WorkerInterface
     }
 
     /**
-     * Perform some overhaead tasks, then wait to recieve a job of the specified type.
+     * Wait to recieve a job of the specified type.
      * If no job of the specified type was available, returns false. If a command is waiting the worker a WorkerCommandException
      * will be thrown. Optionally specify a string of info to set for the worker and the time to wait for a job.
      *
@@ -299,8 +299,8 @@ class Worker implements WorkerInterface
 
         if ($this->currentJob = $this->rocket->getJob($jobId, $queueName)) {
             $this->currentJob->getHash()->clearCache();
-            $this->getRedis()->openPipeline();
             $this->currentJob->getHash()->setField(Job::FIELD_WORKER_NAME, $this->getWorkerName());
+            $this->getRedis()->openPipeline();
             $this->getHash()->setField(self::FIELD_CURRENT_JOB, $jobId);
             $this->getHash()->setField(self::FIELD_CURRENT_QUEUE, $queueName);
             $this->getHash()->incField(self::FIELD_JOBS_DELIVERED);

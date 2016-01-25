@@ -13,7 +13,6 @@ class RedisTest extends BaseTest
         $redis = $harness->getRedis();
         $this->assertTrue($redis->getClient() instanceof \Rocket\Redis\Client);
         $this->assertNotEmpty($redis->getStatus());
-        $this->assertTrue($redis->isRunning());
     }
 
     public function testRequest()

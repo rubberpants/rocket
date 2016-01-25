@@ -177,6 +177,7 @@ class PumpPlugin extends AbstractPlugin
 
         if ($this->isHaltProcessing()) {
             sleep($timeout);
+
             return [];
         }
 
@@ -201,6 +202,9 @@ class PumpPlugin extends AbstractPlugin
         );
 
         foreach ((array) $jobsPumped as $jobId) {
+            $job = $this->getRocket()->getQueue($queue->getQueueName())->getJob($jobId);
+            $readyJobList = $this->getReadyJobList($job->getType());
+            $readyJobList->pushItem(sprintf('["%s","%s"]', $queue->getQueueName(), $jobId));
             $this->debug(sprintf('Pumped job %s from queue %s', $jobId, $queue->getQueueName()));
         }
 
@@ -261,15 +265,12 @@ EOD;
     {
         $script = <<<EOD
 local jobs_pumped = {}
-local job_type = ""
 while table.getn(jobs_pumped) < tonumber(ARGV[1]) and tonumber(redis.call('scard', KEYS[1])) < tonumber(ARGV[2]) and tonumber(redis.call('scard', KEYS[2])) > 0 do
   local job_id = redis.call('lpop', KEYS[3])
-  if redis.call('exists', KEYS[5]..job_id) then
-    job_type = redis.call('hget', KEYS[5]..job_id, 'type')
+  if redis.call('exists', KEYS[4]..job_id) then
     redis.call('smove', KEYS[2], KEYS[1], job_id)
-    redis.call('hset', KEYS[5]..job_id, 'status', 'delivered')
-    redis.call('hset', KEYS[5]..job_id, 'deliver_time', ARGV[3])
-    redis.call('rpush', KEYS[4]..job_type, '["'..ARGV[4]..'","'..job_id..'"]')
+    redis.call('hset', KEYS[4]..job_id, 'status', 'delivered')
+    redis.call('hset', KEYS[4]..job_id, 'deliver_time', ARGV[3])
     table.insert(jobs_pumped, job_id)
   end
 end
@@ -279,30 +280,26 @@ EOD;
         try {
             $jobsPumped = $this->getRedis()->getClient()->evalsha(
                 sha1($script),
-                5,
+                4,
                 $runningSetKey,
                 $waitingSetKey,
                 $waitingListKey,
-                'READY_JOBS:',
-                'JOB:',
+                sprintf('JOB:{%s}:', $queueName),
                 $maxJobsToPump,
                 $runningLimit,
-                (new \DateTime())->format(\DateTime::ISO8601),
-                $queueName
+                (new \DateTime())->format(\DateTime::ISO8601)
             );
         } catch (ServerException $e) {
             $jobsPumped = $this->getRedis()->getClient()->eval(
                 $script,
-                5,
+                4,
                 $runningSetKey,
                 $waitingSetKey,
                 $waitingListKey,
-                'READY_JOBS:',
-                'JOB:',
+                sprintf('JOB:{%s}:', $queueName),
                 $maxJobsToPump,
                 $runningLimit,
-                (new \DateTime())->format(\DateTime::ISO8601),
-                $queueName
+                (new \DateTime())->format(\DateTime::ISO8601)
             );
         }
 

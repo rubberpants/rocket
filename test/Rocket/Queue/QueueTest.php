@@ -177,6 +177,7 @@ class QueueTest extends BaseTest
         $this->assertEventFired(Queue::EVENT_FULL);
     }
 
+    /*
     public function testMove()
     {
         $queue1 = Harness::getInstance()->getNewQueue();
@@ -191,6 +192,7 @@ class QueueTest extends BaseTest
         $this->assertEventFired(Job::EVENT_MOVE);
         $this->assertEquals($queue2->getQueueName(), $job->getQueueName());
     }
+    */
 
     public function testDelete()
     {

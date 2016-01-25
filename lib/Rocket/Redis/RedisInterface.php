@@ -11,5 +11,4 @@ interface RedisInterface
     public function promoteToMaster();
     public function shutdown();
     public function getStatus();
-    public function isRunning();
 }

@@ -1,9 +1,12 @@
 {
 	"application_name": "example",
 	"redis_connections": [
-		"tcp://127.0.0.1:6379?database=12&alias=master",
-		"tcp://127.0.0.1:6380?database=12&alias=slave1"
+		"tcp://127.0.0.1:30001",
+		"tcp://127.0.0.1:30002"
 	],
+	"redis_options": {
+		"cluster": "redis"
+	},
 	"queues": {
 		"default_min_running_limit": 2,
 		"default_max_running_limit": 4,

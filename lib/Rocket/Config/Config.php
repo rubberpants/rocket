@@ -68,6 +68,11 @@ class Config implements ConfigInterface
         return $this->get('redis_connections');
     }
 
+    public function getRedisOptions()
+    {
+        return $this->get('redis_options');
+    }
+
     public function getApplicationName()
     {
         return $this->get('application_name');

@@ -129,9 +129,6 @@ class JobTest extends BaseTest
         $this->assertEquals('Commander Kalgan', $job->getWorkerName());
         $this->assertTrue($job->getStartTime() instanceof \DateTime);
         $this->assertTrue($job->getQueue()->getRunningSet()->hasItem($job->getId()));
-
-        $this->assertException(function () use ($job) { $job->start('Commander Kalgan', 10); }, 'Rocket\RocketException', 'Could not start job because it has not been delivered');
-
         $this->assertEquals([$job->getId()], $queue->getRunningJobs());
         $this->assertEquals(1, $queue->getRunningJobCount());
         $this->assertEquals(1, $job->getAttempts());

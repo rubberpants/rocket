@@ -14,7 +14,6 @@ class ConfigTest extends BaseTest
         $config = $harness->getConfig();
 
         $this->assertEquals('test', $config->get('application_name'));
-        $this->assertEquals("tcp://127.0.0.1:6379?database=10", $config->getRedisConnections());
     }
 
     public function testBlankConfig()
@@ -34,6 +33,12 @@ class ConfigTest extends BaseTest
             $config->get('redis_connections');
         } catch (ConfigException $e) {
             $this->assertEquals('Configuration value redis_connections required', $e->getMessage());
+        }
+
+        try {
+            $config->get('redis_options');
+        } catch (ConfigException $e) {
+            $this->assertEquals('Configuration value redis_options required', $e->getMessage());
         }
     }
 }

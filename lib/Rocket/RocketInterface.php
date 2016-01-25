@@ -12,4 +12,5 @@ interface RocketInterface
     public function getPlugin($name);
     public function getWorker($workerName, $maxCache = 16);
     public function getQueueNamebyJobId($jobId);
+    public function getJobsQueueHash();
 }

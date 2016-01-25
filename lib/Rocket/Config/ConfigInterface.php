@@ -6,6 +6,7 @@ interface ConfigInterface
 {
     public function getApplicationName();
     public function getRedisConnections();
+    public function getRedisOptions();
     public function getDefaultQueueName();
     public function getQueuesDefaultWaitingLimit();
     public function getQueuesWaitingLimit($queueName);
