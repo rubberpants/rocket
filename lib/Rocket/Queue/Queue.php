@@ -146,8 +146,11 @@ class Queue implements QueueInterface
         $job->getHash()->setField(Job::FIELD_SCHEDULE_TIME, $time->format(\DateTime::ISO8601));
         $job->getHash()->setField(Job::FIELD_STATUS, Job::STATUS_SCHEDULED);
         $this->getScheduledSet()->addItem($job->getId());
-        $this->getScheduledSortedSet()->addItem($time->getTimestamp(), json_encode([$job->getId(), $this->getQueueName()]));
         $this->getRedis()->closePipeline();
+
+        $this->getScheduledSortedSet()->addItem($time->getTimestamp(), json_encode([$job->getId(), $this->getQueueName()]));
+
+        $this->rocket->getJobsQueueHash()->setField($job->getId(), $this->getQueueName());
 
         $this->getEventDispatcher()->dispatch(Job::EVENT_SCHEDULE, new JobEvent($job));
 
@@ -203,7 +206,7 @@ class Queue implements QueueInterface
         $this->getScheduledSet()->deleteItem($job->getId());
         $this->getRedis()->closePipeline();
 
-        $this->rocket->getJobsQueueHash()->setField($id, $this->getQueueName());
+        $this->rocket->getJobsQueueHash()->setField($job->getId(), $this->getQueueName());
 
         $this->getEventDispatcher()->dispatch(Job::EVENT_QUEUE, new JobEvent($job));
 
