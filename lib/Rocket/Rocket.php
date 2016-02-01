@@ -157,7 +157,7 @@ class Rocket implements RocketInterface
     {
         $queueName = $this->getJobsQueueHash()->getField($jobId);
 
-        if (!$queueName) {
+        if (is_null($queueName)) {
             throw new RocketException(sprintf('Job %s does not exist', $jobId));
         }
 
