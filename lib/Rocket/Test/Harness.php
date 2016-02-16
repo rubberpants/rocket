@@ -57,7 +57,6 @@ class Harness implements RocketInterface
     public function getConfig()
     {
         if (is_null($this->config)) {
-
             $configuration = json_decode(file_get_contents(__DIR__.self::TEST_CONFIG_FILENAME), true);
 
             //Override for travis.ci builds. Until it supports redis cluster mode.

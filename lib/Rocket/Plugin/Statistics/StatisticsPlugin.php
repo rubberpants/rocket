@@ -183,7 +183,7 @@ class StatisticsPlugin extends AbstractPlugin
 
     public function getQueueStatsHash($queueName, $period)
     {
-        $key = sprintf('STATS_QUEUE:%s:%d', $queueName, $period);
+        $key = sprintf('STATS_QUEUE:{%s}:%d', $queueName, $period);
 
         return $this->getCachedObject('queue', $key, function ($key) {
             $hash = $this->getRedis()->getHashType($key);

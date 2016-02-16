@@ -32,4 +32,5 @@ interface ConfigInterface
     public function getOverheadMaxJobsToPump();
     public function getOverheadMaxEventsToHandle();
     public function getOverheadMaxSchedJobsToQueue();
+    public function getQueueGroupExpr();
 }

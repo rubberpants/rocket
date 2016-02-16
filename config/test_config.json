@@ -40,5 +40,8 @@
 				"queue_expr":".dest+\"-large\""
 			}
 		]
+	},
+	"queue_groups": {
+		"expr": ".group"
 	}
 }

@@ -115,8 +115,7 @@ class QueueTest extends BaseTest
         $this->assertEquals(1, $queue->getScheduledJobCount());
 
         $plugin = Harness::getInstance()->getPlugin('pump');
-        $plugin->queueScheduledJobs(1);
-        $plugin->pumpReadyQueue(1, 1);
+        $plugin->queueScheduledJobs(4);
 
         $job->getHash()->clearCache();
 

@@ -202,4 +202,9 @@ class Config implements ConfigInterface
     {
         return $this->get('overhead.max_sched_jobs_to_queue', 6);
     }
+
+    public function getQueueGroupExpr()
+    {
+        return $this->get('queue_groups.expr', false);
+    }
 }

@@ -4,7 +4,7 @@ namespace Rocket\Plugin\Router;
 
 use Rocket\Plugin\AbstractPlugin;
 use Rocket\Queue\QueueInterface;
-use Symfony\Component\Process\Process;
+use Rocket\RocketException;
 
 /*
     See: http://stedolan.github.io/jq/manual/
@@ -12,6 +12,8 @@ use Symfony\Component\Process\Process;
 
 class RouterPlugin extends AbstractPlugin
 {
+    use \Rocket\JqTrait;
+
     protected $routingFilter;
     protected $defaultRule;
     protected $rules;
@@ -49,7 +51,11 @@ class RouterPlugin extends AbstractPlugin
 
     public function applyRulesToJob($job)
     {
-        return trim(strtolower($this->executeJq($this->getRoutingFilter(), $job)));
+        try {
+            return trim(strtolower($this->executeJq($this->getRoutingFilter(), $job)));
+        } catch (RocketException $e) {
+            throw new RoutingException($e->getMessage());
+        }
     }
 
     public function getRules()
@@ -60,16 +66,6 @@ class RouterPlugin extends AbstractPlugin
     public function getDefaultRule()
     {
         return $this->defaultRule;
-    }
-
-    public function executeJq($filter, $input)
-    {
-        $commandLine = sprintf('jq -c %s', escapeshellarg($filter));
-        $process = new Process($commandLine, null, null, $input);
-        if ($process->run() == 0) {
-            return json_decode($process->getOutput(), true);
-        }
-        throw new RoutingException(sprintf('Routing error: %s', $process->getErrorOutput()));
     }
 
     public function getRoutingFilter()
