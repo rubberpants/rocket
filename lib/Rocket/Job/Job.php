@@ -53,6 +53,7 @@ class Job implements JobInterface
     const FIELD_FAILURE_MSG   = 'failure_message';
     const FIELD_ALERT_MSG     = 'alert_message';
     const FIELD_ATTEMPTS      = 'attempts';
+    const FIELD_OBSTRUCTED    = 'obstructed';
 
     const STATUS_SCHEDULED = 'scheduled';
     const STATUS_WAITING   = 'waiting';
@@ -350,6 +351,16 @@ class Job implements JobInterface
     public function getAttempts()
     {
         return $this->getHash()->getField(self::FIELD_ATTEMPTS);
+    }
+
+    /**
+     * Was the job unable to run immediately after being queued
+     *
+     * @return boolean
+     */
+    public function wasObstructed()
+    {
+        return $this->getHash()->getField(self::FIELD_OBSTRUCTED);
     }
 
     /**

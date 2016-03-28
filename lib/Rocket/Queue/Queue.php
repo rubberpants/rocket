@@ -198,9 +198,16 @@ class Queue implements QueueInterface
 
         $job = $this->initNewJobObject($id, $type, $jobData, $maxRuntime, $jobDigest);
 
+        $obstructed = false;
+
+        if ($this->getRunningJobCount() >= $this->rocket->getPlugin('pump')->getCurrentRunningLimit($this)) {
+            $obstructed = true;
+        }
+
         $this->getRedis()->openPipeline();
         $job->getHash()->setField(Job::FIELD_QUEUE_TIME,  (new \DateTime())->format(\DateTime::ISO8601));
         $job->getHash()->setField(Job::FIELD_STATUS, Job::STATUS_WAITING);
+        $job->getHash()->setField(Job::FIELD_OBSTRUCTED, $obstructed);
         $this->getWaitingSet()->addItem($job->getId());
         $this->getWaitingList()->pushItem($job->getId());
         $this->getScheduledSet()->deleteItem($job->getId());

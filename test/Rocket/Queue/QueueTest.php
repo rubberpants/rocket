@@ -157,6 +157,7 @@ class QueueTest extends BaseTest
         $this->assertEquals([$job->getId()], $queue->getWaitingJobs());
         $this->assertEquals(1, $queue->getWaitingJobCount());
         $this->assertEquals([$job->getId()], $queue->getWaitingJobsByPage(1, 1));
+        $this->assertFalse($job->wasObstructed());
     }
 
     public function testQueueFull()
