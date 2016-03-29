@@ -51,6 +51,7 @@ class Rocket implements RocketInterface
                ->registerPlugin('router', new Plugin\Router\RouterPlugin($this))
                ->registerPlugin('history', new Plugin\JobHistory\JobHistoryPlugin($this))
                ->registerPlugin('top', new Plugin\Top\TopPlugin($this))
+               ->registerPlugin('groups', new Plugin\QueueGroups\QueueGroupsPlugin($this))
                ;
     }
 
