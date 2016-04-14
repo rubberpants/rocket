@@ -126,6 +126,8 @@ class Harness implements RocketInterface
 
     public function getPlugin($name)
     {
+        $plugin = false;
+
         if ($name == 'pump') {
             if (!is_null($this->pump)) {
                 return $this->pump;
