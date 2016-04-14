@@ -17,6 +17,7 @@ class PumpPlugin extends AbstractPlugin
     use \Rocket\ObjectCacheTrait;
 
     protected $readyQueueList;
+    protected $expeditedReadyQueueList;
     protected $readyJobLists = [];
     protected $haltProcessingString;
     protected $pumpActivityString;
@@ -28,16 +29,22 @@ class PumpPlugin extends AbstractPlugin
     {
         $jobEventHandler = function (JobEvent $event) {
             $queue = $event->getJob()->getQueue();
-            $this->getReadyQueueList()->pushItem($queue->getQueueName());
+            if ($event->getJob()->isExpedited()) {
+                $this->getExpeditedReadyQueueList()->pushItem($queue->getQueueName());
+            } else {
+                $this->getReadyQueueList()->pushItem($queue->getQueueName());
+            }
         };
 
         $queueEventHandler = function (QueueEvent $event) {
             $queue = $event->getQueue();
+            $this->getExpeditedReadyQueueList()->pushItem($queue->getQueueName());
             $this->getReadyQueueList()->pushItem($queue->getQueueName());
         };
 
         $queueDeleteEventHandler = function (QueueEvent $event) {
             $queue = $event->getQueue();
+            $this->getExpeditedReadyQueueList()->deleteItem($queue->getQueueName());
             $this->getReadyQueueList()->deleteItem($queue->getQueueName());
         };
 
@@ -76,6 +83,15 @@ class PumpPlugin extends AbstractPlugin
         }
 
         return $this->readyQueueList;
+    }
+
+    public function getExpeditedReadyQueueList()
+    {
+        if (is_null($this->expeditedReadyQueueList)) {
+            $this->expeditedReadyQueueList = $this->getRedis()->getUniqueListType('EXPEDITED_READY_QUEUE_LIST');
+        }
+
+        return $this->expeditedReadyQueueList;
     }
 
     public function getReadyJobList($jobType)
@@ -181,6 +197,12 @@ class PumpPlugin extends AbstractPlugin
             return [];
         }
 
+        if ($queueName = $this->getExpeditedReadyQueueList()->blockAndPopItem($timeout)) {
+            if ($queue = $this->getRocket()->getQueue($queueName)) {
+                $jobsPumped += $this->pumpQueue($queue, $maxJobsToPump, true);
+            }
+        }
+
         if ($queueName = $this->getReadyQueueList()->blockAndPopItem($timeout)) {
             if ($queue = $this->getRocket()->getQueue($queueName)) {
                 $jobsPumped += $this->pumpQueue($queue, $maxJobsToPump);
@@ -190,13 +212,21 @@ class PumpPlugin extends AbstractPlugin
         return $jobsPumped;
     }
 
-    public function pumpQueue(QueueInterface $queue, $maxJobsToPump)
+    public function pumpQueue(QueueInterface $queue, $maxJobsToPump, $pumpExpedited = false)
     {
+        if ($plugin = $this->getRocket()->getPlugin('groups')) {
+            /* NOTE: This concurrency limit is considered 'soft' in that it's not
+               processed in an atomic way and race conditions can push it over. */
+            if ($plugin->reachedQueueGroupLimit($queue)) {
+                return 0;
+            }
+        }
+
         $jobsPumped = $this->executePumpLuaScript(
             $queue->getQueueName(),
             $queue->getRunningSet()->getKey(),
             $queue->getWaitingSet()->getKey(),
-            $queue->getWaitingList()->getKey(),
+            $pumpExpedited ? $queue->getExpeditedWaitingList()->getKey() : $queue->getWaitingList()->getKey(),
             $maxJobsToPump,
             $this->getCurrentRunningLimit($queue)
         );

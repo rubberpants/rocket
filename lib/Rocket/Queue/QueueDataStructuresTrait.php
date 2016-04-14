@@ -7,6 +7,7 @@ trait QueueDataStructuresTrait
     use \Rocket\Redis\RedisTrait;
 
     protected $waitingList;
+    protected $expeditedWaitingList;
     protected $waitingSet;
     protected $parkedSet;
     protected $runningSet;
@@ -26,6 +27,15 @@ trait QueueDataStructuresTrait
         }
 
         return $this->waitingList;
+    }
+
+    public function getExpeditedWaitingList()
+    {
+        if (is_null($this->expeditedWaitingList)) {
+            $this->expeditedWaitingList = $this->getRedis()->getListType(sprintf('QUEUE:{%s}:EXPEDITED', $this->getQueueName()));
+        }
+
+        return $this->expeditedWaitingList;
     }
 
     public function getWaitingSet()

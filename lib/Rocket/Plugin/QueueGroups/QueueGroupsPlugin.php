@@ -14,7 +14,10 @@ class QueueGroupsPlugin extends AbstractPlugin
     use \Rocket\ObjectCacheTrait;
     use \Rocket\JqTrait;
 
-    protected $queueGroupSets = [];
+    protected $groupQueuesHash;
+    protected $allGroupsSet;
+
+    //Assumption: A queue is a member of a single group
 
     public function register()
     {
@@ -26,12 +29,27 @@ class QueueGroupsPlugin extends AbstractPlugin
             $this->addQueueGroupFromJob($event->getJob(), $event->getJob()->getQueueName());
         });
 
+        $this->getEventDispatcher()->addListener(Job::EVENT_START, function (JobEvent $event) {
+            $this->getGroupRunningSet($event->getJob()->getGroupName())->addItem($event->getJob()->getId());
+        });
+
+        $this->getEventDispatcher()->addListener(Job::EVENT_COMPLETE, function (JobEvent $event) {
+            $this->getGroupRunningSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
+        });
+
+        $this->getEventDispatcher()->addListener(Job::EVENT_FAIL, function (JobEvent $event) {
+            $this->getGroupRunningSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
+        });
+
+        $this->getEventDispatcher()->addListener(Job::EVENT_DELETE, function (JobEvent $event) {
+            $this->getGroupRunningSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
+        });
+
         $this->getEventDispatcher()->addListener(Queue::EVENT_DELETE, function (QueueEvent $event) {
-            foreach ((array) $this->getGroups() as $group) {
-                $this->getGroupQueuesSet($group)->deleteItem($event->getQueue()->getQueueName());
-                if (!$this->getGroupQueuesSet($group)->exists()) {
-                    $this->getAllGroupsSet()->deleteItem($group);
-                }
+            $queueName = $event->getQueue()->getQueueName();
+            if ($groupName = $this->getGroupForQueue($queueName)) {
+                $this->getGroupQueuesSet($groupName)->deleteItem($queueName);
+                $this->getGroupQueuesHash()->deleteField($queueName);
             }
         });
     }
@@ -47,15 +65,39 @@ class QueueGroupsPlugin extends AbstractPlugin
         });
     }
 
-    public function getAllGroupsSet()
+    public function getGroupRunningSet($group)
     {
-        return $this->getRedis()->getSetType('ALL_GROUPS');
+        $key = sprintf('GROUP_RUNNING_JOBS:%s', $group);
+
+        return $this->getCachedObject('group_running_jobs', $key, function ($key) {
+            $set = $this->getRedis()->getSetType($key);
+
+            return $set;
+        });
     }
 
-    public function getGroupFromJob(JobInterface $job)
+    public function getAllGroupsSet()
+    {
+        if (is_null($this->allGroupsSet)) {
+            $this->allGroupsSet = $this->getRedis()->getSetType('ALL_GROUPS');
+        }
+
+        return $this->allGroupsSet;
+    }
+
+    public function getGroupQueuesHash()
+    {
+        if (is_null($this->groupQueuesHash)) {
+            $this->groupQueuesHash = $this->getRedis()->getHashType('GROUP_QUEUES');
+        }
+
+        return $this->groupQueuesHash;
+    }
+
+    public function getGroupFromJob(Job $job)
     {
         if (!($filter = $this->getConfig()->getQueueGroupExpr())) {
-            return;
+            return null;
         }
 
         try {
@@ -65,11 +107,13 @@ class QueueGroupsPlugin extends AbstractPlugin
         }
     }
 
-    public function addQueueGroupFromJob(JobInterface $job, $queueName)
+    public function addQueueGroupFromJob(Job $job, $queueName)
     {
         if (!is_null($group = $this->getGroupFromJob($job))) {
             $this->getGroupQueuesSet($group)->addItem($queueName);
             $this->getAllGroupsSet()->addItem($group);
+            $this->getGroupQueuesHash()->setField($queueName, $group);
+            $job->getHash()->setField(Job::FIELD_GROUP_NAME, $group);
         }
     }
 
@@ -82,4 +126,35 @@ class QueueGroupsPlugin extends AbstractPlugin
     {
         return $this->getGroupQueuesSet($group)->getItems();
     }
+
+    public function getGroupForQueue($queueName)
+    {
+        return $this->getGroupQueuesHash()->getField($queueName);
+    }
+
+    public function getGroupRunningJobs($group)
+    {
+        return $this->getGroupRunningSet($group)->getItems();
+    }
+
+    public function reachedQueueGroupLimit(QueueInterface $queue)
+    {
+        if ($defaultLimit = $this->getConfig()->getQueueGroupsDefaultRunningLimit()) {
+            $limit = $defaultLimit;
+        } else {
+            return false;
+        }
+
+        if ($groupName = $this->getGroupForQueue($queue->getQueueName())) {
+            if ($specificLimit = $this->getConfig()->getQueueGroupsRunningLimit($groupName)) {
+                $limit = $specificLimit;
+            }
+            if ($this->getGroupRunningSet($groupName)->getCount() >= $limit) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

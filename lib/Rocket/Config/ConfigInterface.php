@@ -14,6 +14,8 @@ interface ConfigInterface
     public function getQueuesMinRunningLimit($queueName);
     public function getQueuesDefaultMaxRunningLimit();
     public function getQueuesMaxRunningLimit($queueName);
+    public function getQueueGroupsDefaultRunningLimit();
+    public function getQueueGroupsRunningLimit($groupName);
     public function getStatisticsPeriodSize();
     public function getStatisticsPeriodCount();
     public function getMonitorWaitingJobMax();

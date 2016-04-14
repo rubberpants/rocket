@@ -39,5 +39,8 @@
 				"queue_expr":".queue+\"-large\""
 			}
 		]
+	},
+	"queue_groups": {
+		"default_running_limit": 10
 	}
 }

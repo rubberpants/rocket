@@ -95,4 +95,12 @@ class UniqueListType extends BaseType
             return $this->getClient()->del($this->getKey());
         });
     }
+
+    public function getCount()
+    {
+        return $this->request(function ($client) {
+            return $client->scard($this->getSetKey());
+        });
+    }
+
 }

@@ -128,10 +128,11 @@ class Queue implements QueueInterface
      * @param string   $id
      * @param int      $maxRuntime
      * @param string   $jobDigest
+     * @param boolean  $expedited
      *
      * @return Job | boolean
      */
-    public function scheduleJob(\DateTime $time, $jobData, $type = 'default', $id = null, $maxRuntime = 0, $jobDigest = null)
+    public function scheduleJob(\DateTime $time, $jobData, $type = 'default', $id = null, $maxRuntime = 0, $jobDigest = null, $expedited = false)
     {
         $this->init();
 
@@ -140,7 +141,7 @@ class Queue implements QueueInterface
             $this->info(sprintf('Assigning id %s to new job', $id));
         }
 
-        $job = $this->initNewJobObject($id, $type, $jobData, $maxRuntime, $jobDigest);
+        $job = $this->initNewJobObject($id, $type, $jobData, $maxRuntime, $jobDigest, $expedited);
 
         $this->getRedis()->openPipeline();
         $job->getHash()->setField(Job::FIELD_SCHEDULE_TIME, $time->format(\DateTime::ISO8601));
@@ -170,10 +171,11 @@ class Queue implements QueueInterface
      * @param string $id
      * @param int    $maxRuntime
      * @param string $jobDigest
+     * @param boolean $expedited
      *
      * @return Job | boolean
      */
-    public function queueJob($jobData, $type = 'default', $id = null, $maxRuntime = 0, $jobDigest = null)
+    public function queueJob($jobData, $type = 'default', $id = null, $maxRuntime = 0, $jobDigest = null, $expedited = false)
     {
         if ($this->isDisabled()) {
             $this->getEventDispatcher()->dispatch(self::EVENT_FULL, new QueueFullEvent($this, $jobData));
@@ -196,7 +198,7 @@ class Queue implements QueueInterface
             $this->info(sprintf('Assigning id %s to new job', $id));
         }
 
-        $job = $this->initNewJobObject($id, $type, $jobData, $maxRuntime, $jobDigest);
+        $job = $this->initNewJobObject($id, $type, $jobData, $maxRuntime, $jobDigest, $expedited);
 
         $obstructed = false;
 
@@ -209,7 +211,11 @@ class Queue implements QueueInterface
         $job->getHash()->setField(Job::FIELD_STATUS, Job::STATUS_WAITING);
         $job->getHash()->setField(Job::FIELD_OBSTRUCTED, $obstructed);
         $this->getWaitingSet()->addItem($job->getId());
-        $this->getWaitingList()->pushItem($job->getId());
+        if ($expedited) {
+            $this->getExpeditedWaitingList()->pushItem($job->getId());
+        } else {
+            $this->getWaitingList()->pushItem($job->getId());
+        }
         $this->getScheduledSet()->deleteItem($job->getId());
         $this->getRedis()->closePipeline();
 
@@ -441,6 +447,11 @@ class Queue implements QueueInterface
         return $this->getWaitingList()->getItems($page, $pageSize);
     }
 
+    public function getExpeditedWaitingJobsByPage($page, $pageSize)
+    {
+        return $this->getExpeditedWaitingList()->getItems($page, $pageSize);
+    }
+
     public function getWaitingJobCount()
     {
         return $this->getWaitingSet()->getCount();
@@ -556,7 +567,7 @@ class Queue implements QueueInterface
         return $this->rocket;
     }
 
-    protected function initNewJobObject($id, $type, $jobData, $maxRuntime, $jobDigest)
+    protected function initNewJobObject($id, $type, $jobData, $maxRuntime, $jobDigest, $expedited)
     {
         $job = new Job($id, $this);
 
@@ -567,6 +578,7 @@ class Queue implements QueueInterface
         $job->getHash()->setField(Job::FIELD_JOB,         $jobData);
         $job->getHash()->setField(Job::FIELD_MAX_RUNTIME, $maxRuntime);
         $job->getHash()->setField(Job::FIELD_JOB_DIGEST,  $jobDigest);
+        $job->getHash()->setField(Job::FIELD_EXPEDITED,   $expedited);
         $this->getRedis()->closePipeline();
 
         return $job;

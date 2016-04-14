@@ -113,6 +113,16 @@ class Config implements ConfigInterface
         return $this->get('queues.max_running_limits.'.$queueName, $this->getQueuesDefaultMaxRunningLimit());
     }
 
+    public function getQueueGroupsDefaultRunningLimit()
+    {
+        return $this->get('queue_groups.default_running_limit', 0);
+    }
+
+    public function getQueueGroupsRunningLimit($groupName)
+    {
+        return $this->get('queue_groups.running_limits.'.$groupName, 0);
+    }
+
     public function getStatisticsPeriodSize()
     {
         return $this->get('statistics.period_size', 300); //5 minutes

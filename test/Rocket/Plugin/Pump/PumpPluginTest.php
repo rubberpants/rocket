@@ -28,6 +28,8 @@ class PumpPluginTest extends BaseTest
 
         $queue->queueJob('Terror From the Year 5000', 'test');
 
+        $this->assertEquals(1, $plugin->getReadyQueueList()->getCount());
+
         list($jobId) = $plugin->pumpReadyQueue(1, 1);
 
         $job = $queue->getJob($jobId);
@@ -38,6 +40,31 @@ class PumpPluginTest extends BaseTest
         $this->assertFalse($queue->getWaitingSet()->hasItem($jobId));
         $this->assertTrue($queue->getRunningSet()->hasItem($jobId));
         $this->assertNull($queue->getWaitingList()->popItem());
+    }
+
+    public function testPumpExpeditedReadyQueue()
+    {
+        $queue = Harness::getInstance()->getNewQueue();
+
+        $plugin = $this->getPlugin();
+        $plugin->getExpeditedReadyQueueList()->delete();
+        $plugin->getReadyJobList('test')->delete();
+
+        $queue->queueJob('I Was a Teenage Werewolf', 'test', null, 0, null, true);
+
+        $this->assertEquals(1, $plugin->getExpeditedReadyQueueList()->getCount());
+
+        list($jobId) = $plugin->pumpReadyQueue(1, 1);
+
+        $job = $queue->getJob($jobId);
+
+        $this->assertEquals(Job::STATUS_DELIVERED, $job->getStatus());
+        $this->assertEquals('test', $job->getType());
+        $this->assertTrue($job->isExpedited());
+        $this->assertTrue($job->getDeliverTime() instanceof \DateTime);
+        $this->assertFalse($queue->getWaitingSet()->hasItem($jobId));
+        $this->assertTrue($queue->getRunningSet()->hasItem($jobId));
+        $this->assertNull($queue->getExpeditedWaitingList()->popItem());
     }
 
     public function testQueueScheduledJobs()

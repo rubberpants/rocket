@@ -57,4 +57,12 @@ class ListType extends BaseType
             return $client->linsert($this->getKey(), $position, $pivot, $item);
         });
     }
+
+    public function getLength()
+    {
+        return $this->request(function ($client) {
+            return $client->llen($this->getKey());
+        });
+    }
+
 }

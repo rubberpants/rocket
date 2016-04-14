@@ -160,6 +160,32 @@ class QueueTest extends BaseTest
         $this->assertFalse($job->wasObstructed());
     }
 
+    public function testQueueExpedited()
+    {
+        $queue = Harness::getInstance()->getNewQueue();
+
+        $this->monitorEvent(Job::EVENT_QUEUE);
+
+        $job = $queue->queueJob('TGIFMcApplebees Factory', 'default', null, 0, null, true);
+
+        $this->assertTrue($job->getHash()->fieldExists(Job::FIELD_QUEUE_TIME));
+        $this->assertTrue($job->isExpedited());
+        $this->assertEquals(Job::STATUS_WAITING, $job->getHash()->getField(Job::FIELD_STATUS));
+        $this->assertTrue($job->getHash()->fieldExists(Job::FIELD_QUEUE_NAME));
+        $this->assertEquals($job->getId(), $queue->getExpeditedWaitingList()->getItem(0));
+        $this->assertEquals(Job::STATUS_WAITING, $job->getStatus());
+        $this->assertTrue($job->getQueueTime() instanceof \DateTime);
+        $this->assertEquals($queue->getQueueName(), $job->getQueueName());
+        $this->assertEquals($queue, $job->getQueue());
+        $this->assertEquals('TGIFMcApplebees Factory', $job->getJob());
+        $this->assertEquals(sha1('TGIFMcApplebees Factory'), $job->getJobDigest());
+        $this->assertEventFired(Job::EVENT_QUEUE);
+        $this->assertEquals([$job->getId()], $queue->getWaitingJobs());
+        $this->assertEquals(1, $queue->getWaitingJobCount());
+        $this->assertEquals([$job->getId()], $queue->getExpeditedWaitingJobsByPage(1, 1));
+        $this->assertFalse($job->wasObstructed());
+    }
+
     public function testQueueFull()
     {
         $queue = Harness::getInstance()->getQueue('test-queue4');

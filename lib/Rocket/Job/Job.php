@@ -40,6 +40,7 @@ class Job implements JobInterface
     const FIELD_JOB           = 'job';
     const FIELD_JOB_DIGEST    = 'job_digest';
     const FIELD_QUEUE_NAME    = 'queue_name';
+    const FIELD_GROUP_NAME    = 'group_name';
     const FIELD_WORKER_NAME   = 'worker_name';
     const FIELD_SCHEDULE_TIME = 'sched_time';
     const FIELD_QUEUE_TIME    = 'queue_time';
@@ -54,6 +55,7 @@ class Job implements JobInterface
     const FIELD_ALERT_MSG     = 'alert_message';
     const FIELD_ATTEMPTS      = 'attempts';
     const FIELD_OBSTRUCTED    = 'obstructed';
+    const FIELD_EXPEDITED     = 'expedited';
 
     const STATUS_SCHEDULED = 'scheduled';
     const STATUS_WAITING   = 'waiting';
@@ -187,6 +189,16 @@ class Job implements JobInterface
     public function getQueueName()
     {
         return $this->getHash()->getField(self::FIELD_QUEUE_NAME);
+    }
+
+    /**
+     * Get the name of the group where the job lives.
+     *
+     * @return string
+     */
+    public function getGroupName()
+    {
+        return $this->getHash()->getField(self::FIELD_GROUP_NAME);
     }
 
     /**
@@ -360,7 +372,17 @@ class Job implements JobInterface
      */
     public function wasObstructed()
     {
-        return $this->getHash()->getField(self::FIELD_OBSTRUCTED);
+        return $this->getHash()->getField(self::FIELD_OBSTRUCTED) ? true : false;
+    }
+
+    /**
+     * Should the job be pumped before regular jobs?
+     *
+     * @return boolean
+     */
+    public function isExpedited()
+    {
+        return $this->getHash()->getField(self::FIELD_EXPEDITED) ? true : false;
     }
 
     /**
@@ -411,9 +433,15 @@ class Job implements JobInterface
      */
     public function shift($pivot, $position)
     {
-        if ($this->getQueue()->getWaitingList()->deleteItem($this->getId())) {
+        if ($this->isExpedited()) {
+            $waitingList = $this->getQueue()->getExpeditedWaitingList();
+        } else {
+            $waitingList = $this->getQueue()->getWaitingList();
+        }
+
+        if ($waitingList->deleteItem($this->getId())) {
             $this->getRedis()->openPipeline();
-            $this->getQueue()->getWaitingList()->insertItem($this->getId(), $position, $pivot);
+            $waitingList->insertItem($this->getId(), $position, $pivot);
             $this->getRedis()->closePipeline();
             $this->getEventDispatcher()->dispatch(self::EVENT_SHIFT, new JobEvent($this));
             $this->info(sprintf('Job shifted %s %s', $position, $pivot));
@@ -434,7 +462,13 @@ class Job implements JobInterface
      */
     public function park()
     {
-        if ($this->getQueue()->getWaitingList()->deleteItem($this->getId())) {
+        if ($this->isExpedited()) {
+            $waitingList = $this->getQueue()->getExpeditedWaitingList();
+        } else {
+            $waitingList = $this->getQueue()->getWaitingList();
+        }
+
+        if ($waitingList->deleteItem($this->getId())) {
             $this->getRedis()->openPipeline();
             $this->getHash()->setField(self::FIELD_STATUS, self::STATUS_PARKED);
             $this->getQueue()->getWaitingSet()->moveTo($this->getQueue()->getParkedSet(), $this->getId());
@@ -458,10 +492,16 @@ class Job implements JobInterface
      */
     public function unpark()
     {
+        if ($this->isExpedited()) {
+            $waitingList = $this->getQueue()->getExpeditedWaitingList();
+        } else {
+            $waitingList = $this->getQueue()->getWaitingList();
+        }
+
         if ($this->getQueue()->getWaitingSet()->moveFrom($this->getQueue()->getParkedSet(), $this->getId())) {
             $this->getRedis()->openPipeline();
             $this->getHash()->setField(self::FIELD_STATUS, self::STATUS_WAITING);
-            $this->getQueue()->getWaitingList()->pushItem($this->getId());
+            $waitingList->pushItem($this->getId());
             $this->getRedis()->closePipeline();
 
             $this->getEventDispatcher()->dispatch(self::EVENT_UNPARK, new JobEvent($this));
@@ -571,6 +611,7 @@ class Job implements JobInterface
         $this->getHash()->delete();
         $this->getHistoryList()->delete();
         $this->getQueue()->getWaitingList()->deleteItem($this->getId());
+        $this->getQueue()->getExpeditedWaitingList()->deleteItem($this->getId());
         $this->getQueue()->getWaitingSet()->deleteItem($this->getId());
         $this->getQueue()->getParkedSet()->deleteItem($this->getId());
         $this->getQueue()->getRunningSet()->deleteItem($this->getId());
@@ -610,7 +651,11 @@ class Job implements JobInterface
         } else {
             $this->getHash()->setField(self::FIELD_STATUS, self::STATUS_WAITING);
             $this->getQueue()->getWaitingSet()->addItem($this->getId());
-            $this->getQueue()->getWaitingList()->pushItem($this->getId());
+            if ($this->isExpedited()) {
+                $this->getQueue()->getExpeditedWaitingList()->pushItem($this->getId());
+            } else {
+                $this->getQueue()->getWaitingList()->pushItem($this->getId());
+            }
             $this->info('Job requeued');
         }
         $this->getQueue()->getCancelledSet()->deleteItem($this->getId());
@@ -624,7 +669,7 @@ class Job implements JobInterface
     }
 
     /**
-     * Mark the job as delivered. This is primarily used for testing. In practive, the pump
+     * Mark the job as delivered. This is primarily used for testing. In practice, the pump
      * handles setting these fields and events in an atomic way when it delivers a job.
      *
      * @return boolean
@@ -757,7 +802,7 @@ class Job implements JobInterface
 
         if ($this->getQueue()->getRunningSet()->moveTo($this->getQueue()->getFailedSet(), $this->getId())) {
             $this->getRedis()->openPipeline();
-            $this->getHash()->setField(self::FIELD_STATUS,    self::STATUS_FAILED);
+            $this->getHash()->setField(self::FIELD_STATUS, self::STATUS_FAILED);
             $this->getHash()->setField(self::FIELD_FAIL_TIME, (new \DateTime())->format(\DateTime::ISO8601));
             $this->getHash()->setField(self::FIELD_FAILURE_MSG, $failureMessage);
             $this->getHash()->deleteField(self::FIELD_WORKER_NAME);

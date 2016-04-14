@@ -12,6 +12,7 @@ interface JobInterface
     public function getJobDigest();
     public function getQueue();
     public function getQueueName();
+    public function getGroupName();
     public function getWorkerName();
     public function getQueueTime();
     public function getDeliverTime();
@@ -36,4 +37,6 @@ interface JobInterface
     public function fail($timeout, $failureMessage);
     public function getFailureMessage();
     public function getAlertMessage();
+    public function isExpedited();
+    public function wasObstructed();
 }
