@@ -11,6 +11,7 @@ use Rocket\Queue\UUIDv4Generator;
 use Rocket\Worker\Worker;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Monolog\Logger;
+use Rocket\Queue\IdGeneratorInterface;
 
 class Rocket implements RocketInterface
 {
