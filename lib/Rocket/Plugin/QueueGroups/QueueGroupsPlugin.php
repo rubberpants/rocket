@@ -4,7 +4,6 @@ namespace Rocket\Plugin\QueueGroups;
 
 use Rocket\Plugin\AbstractPlugin;
 use Rocket\Job\JobEvent;
-use Rocket\Job\JobInterface;
 use Rocket\Job\Job;
 use Rocket\Queue\Queue;
 use Rocket\Queue\QueueEvent;
@@ -97,7 +96,7 @@ class QueueGroupsPlugin extends AbstractPlugin
     public function getGroupFromJob(Job $job)
     {
         if (!($filter = $this->getConfig()->getQueueGroupExpr())) {
-            return null;
+            return;
         }
 
         try {
@@ -156,5 +155,4 @@ class QueueGroupsPlugin extends AbstractPlugin
 
         return false;
     }
-
 }

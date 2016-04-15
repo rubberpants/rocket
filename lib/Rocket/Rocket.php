@@ -7,6 +7,7 @@ use Rocket\Redis\SetType;
 use Rocket\Config\ConfigInterface;
 use Rocket\Plugin\PluginInterface;
 use Rocket\Queue\Queue;
+use Rocket\Queue\UUIDv4Generator;
 use Rocket\Worker\Worker;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Monolog\Logger;
@@ -22,17 +23,19 @@ class Rocket implements RocketInterface
     protected $queuesSet;
     protected $plugins = [];
     protected $jobsQueueHash;
+    protected $idGenerator;
 
     /**
      * Creates a new instance of the main object.
      *
-     * @param ConfigInterface $config          The configuration object
-     * @param Logger          $logger          The logger object
-     * @param EventDispatcher $eventDispatcher The event dispather object
+     * @param ConfigInterface      $config          The configuration object
+     * @param Logger               $logger          The logger object
+     * @param EventDispatcher      $eventDispatcher The event dispather object
+     * @param IdGeneratorInterface $idGenerator     The object used to create new job ids
      *
      * @return Rocket
      */
-    public function __construct(ConfigInterface $config, Logger $logger, EventDispatcher $eventDispatcher)
+    public function __construct(ConfigInterface $config, Logger $logger, EventDispatcher $eventDispatcher, IdGeneratorInterface $idGenerator = null)
     {
         $redis = new Redis();
         $redis->setConfig($config)
@@ -53,6 +56,12 @@ class Rocket implements RocketInterface
                ->registerPlugin('top', new Plugin\Top\TopPlugin($this))
                ->registerPlugin('groups', new Plugin\QueueGroups\QueueGroupsPlugin($this))
                ;
+
+        $this->idGenerator = $idGenerator;
+
+        if (is_null($this->idGenerator)) {
+            $this->idGenerator = new UUIDv4Generator();
+        }
     }
 
     /**
@@ -224,5 +233,10 @@ class Rocket implements RocketInterface
         }
 
         return $this->jobsQueueHash;
+    }
+
+    public function getIdGenerator()
+    {
+        return $this->idGenerator;
     }
 }

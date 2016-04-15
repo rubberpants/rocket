@@ -366,7 +366,7 @@ class Job implements JobInterface
     }
 
     /**
-     * Was the job unable to run immediately after being queued
+     * Was the job unable to run immediately after being queued.
      *
      * @return boolean
      */

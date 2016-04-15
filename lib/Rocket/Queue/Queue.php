@@ -29,23 +29,6 @@ class Queue implements QueueInterface
     protected $queueName;
 
     /**
-     * Generate a UUID version 4 string. Used as the default behavior
-     * for assigning new job IDs.
-     *
-     * @return string
-     */
-    public static function generateUUIDv4()
-    {
-        return sprintf('%04x%04x-%04x-%03x4-%04x-%04x%04x%04x',
-            mt_rand(0, 65535), mt_rand(0, 65535),
-            mt_rand(0, 65535),
-            mt_rand(0, 4095),
-            bindec(substr_replace(sprintf('%016b', mt_rand(0, 65535)), '01', 6, 2)),
-            mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535)
-        );
-    }
-
-    /**
      * Create the queue object. Specify the name of the queue.
      *
      * @return Queue
@@ -137,7 +120,7 @@ class Queue implements QueueInterface
         $this->init();
 
         if (is_null($id)) {
-            $id = self::generateUUIDv4();
+            $id = $this->getRocket()->getIdGenerator()->generateId();
             $this->info(sprintf('Assigning id %s to new job', $id));
         }
 
@@ -166,11 +149,11 @@ class Queue implements QueueInterface
      * is already at it's waiting job limit, returns false. Optionally include the runtime before
      * a job will alert. Optionally specify the message digest for the payload.
      *
-     * @param string $jobData
-     * @param string $type
-     * @param string $id
-     * @param int    $maxRuntime
-     * @param string $jobDigest
+     * @param string  $jobData
+     * @param string  $type
+     * @param string  $id
+     * @param int     $maxRuntime
+     * @param string  $jobDigest
      * @param boolean $expedited
      *
      * @return Job | boolean
@@ -194,7 +177,7 @@ class Queue implements QueueInterface
         }
 
         if (is_null($id)) {
-            $id = self::generateUUIDv4();
+            $id = $this->getRocket()->getIdGenerator()->generateId();
             $this->info(sprintf('Assigning id %s to new job', $id));
         }
 

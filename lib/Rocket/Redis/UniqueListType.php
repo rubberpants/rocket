@@ -102,5 +102,4 @@ class UniqueListType extends BaseType
             return $client->scard($this->getSetKey());
         });
     }
-
 }

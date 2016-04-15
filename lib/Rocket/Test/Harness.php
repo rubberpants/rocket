@@ -17,6 +17,7 @@ use Rocket\Plugin\Aggregate\AggregatePlugin;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Monolog\Logger;
 use Monolog\Handler\RotatingFileHandler;
+use Rocket\Queue\CUIDGenerator;
 
 class Harness implements RocketInterface
 {
@@ -34,6 +35,7 @@ class Harness implements RocketInterface
     protected $aggregate;
     protected $queues;
     protected $jobsQueueHash;
+    protected $idGenerator;
 
     public function flushTestDatabases()
     {
@@ -198,5 +200,14 @@ class Harness implements RocketInterface
 
     public function performOverheadTasks($interval = 1)
     {
+    }
+
+    public function getIdGenerator()
+    {
+        if (is_null($this->idGenerator)) {
+            $this->idGenerator = new CUIDGenerator();
+        }
+
+        return $this->idGenerator;
     }
 }

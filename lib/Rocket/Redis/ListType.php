@@ -64,5 +64,4 @@ class ListType extends BaseType
             return $client->llen($this->getKey());
         });
     }
-
 }
