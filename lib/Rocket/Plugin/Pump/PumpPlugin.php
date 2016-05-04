@@ -299,11 +299,13 @@ EOD;
 local jobs_pumped = {}
 while table.getn(jobs_pumped) < tonumber(ARGV[1]) and tonumber(redis.call('scard', KEYS[1])) < tonumber(ARGV[2]) and tonumber(redis.call('scard', KEYS[2])) > 0 do
   local job_id = redis.call('lpop', KEYS[3])
-  if redis.call('exists', KEYS[4]..job_id) then
-    redis.call('smove', KEYS[2], KEYS[1], job_id)
-    redis.call('hset', KEYS[4]..job_id, 'status', 'delivered')
-    redis.call('hset', KEYS[4]..job_id, 'deliver_time', ARGV[3])
-    table.insert(jobs_pumped, job_id)
+  if job_id then
+    if redis.call('exists', KEYS[4]..job_id) then
+      redis.call('smove', KEYS[2], KEYS[1], job_id)
+      redis.call('hset', KEYS[4]..job_id, 'status', 'delivered')
+      redis.call('hset', KEYS[4]..job_id, 'deliver_time', ARGV[3])
+      table.insert(jobs_pumped, job_id)
+    end
   end
 end
 return jobs_pumped
