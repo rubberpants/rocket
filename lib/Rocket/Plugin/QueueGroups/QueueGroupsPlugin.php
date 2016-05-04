@@ -7,6 +7,7 @@ use Rocket\Job\JobEvent;
 use Rocket\Job\Job;
 use Rocket\Queue\Queue;
 use Rocket\Queue\QueueEvent;
+use Rocket\Queue\QueueInterface;
 
 class QueueGroupsPlugin extends AbstractPlugin
 {

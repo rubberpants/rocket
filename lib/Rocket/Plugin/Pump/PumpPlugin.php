@@ -197,9 +197,11 @@ class PumpPlugin extends AbstractPlugin
             return [];
         }
 
-        if ($queueName = $this->getExpeditedReadyQueueList()->blockAndPopItem($timeout)) {
-            if ($queue = $this->getRocket()->getQueue($queueName)) {
-                $jobsPumped += $this->pumpQueue($queue, $maxJobsToPump, true);
+        if ($this->getConfig()->getExpeditedPumpProbability() >= ((float) mt_rand() / (float) mt_getrandmax())) {
+            if ($queueName = $this->getExpeditedReadyQueueList()->blockAndPopItem($timeout)) {
+                if ($queue = $this->getRocket()->getQueue($queueName)) {
+                    $jobsPumped += $this->pumpQueue($queue, $maxJobsToPump, true);
+                }
             }
         }
 

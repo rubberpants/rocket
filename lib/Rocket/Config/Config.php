@@ -217,4 +217,9 @@ class Config implements ConfigInterface
     {
         return $this->get('queue_groups.expr', false);
     }
+
+    public function getExpeditedPumpProbability()
+    {
+        return $this->get('expedited.probability', 1.0);
+    }
 }
