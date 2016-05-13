@@ -658,9 +658,11 @@ class Job implements JobInterface
             }
             $this->info('Job requeued');
         }
+        $this->getQueue()->getRunningSet()->deleteItem($this->getId());
         $this->getQueue()->getCancelledSet()->deleteItem($this->getId());
         $this->getQueue()->getFailedSet()->deleteItem($this->getId());
         $this->getQueue()->getCompletedSet()->deleteItem($this->getId());
+        $this->getHash()->deleteField(self::FIELD_WORKER_NAME);
         $this->getRedis()->closePipeline();
 
         $this->getEventDispatcher()->dispatch(self::EVENT_REQUEUE, new JobEvent($this));
