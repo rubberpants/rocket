@@ -36,9 +36,19 @@ class PumpPlugin extends AbstractPlugin
             }
         };
 
+        $jobDoneEventHandler = function (JobEvent $event) {
+            $queue = $event->getJob()->getQueue();
+            if ($queue->getExpeditedWaitingList()->getLength() > 0) {
+                $this->getExpeditedReadyQueueList()->pushItem($queue->getQueueName());   
+            }
+            $this->getReadyQueueList()->pushItem($queue->getQueueName());
+        };
+
         $queueEventHandler = function (QueueEvent $event) {
             $queue = $event->getQueue();
-            $this->getExpeditedReadyQueueList()->pushItem($queue->getQueueName());
+            if ($queue->getExpeditedWaitingList()->getLength() > 0) {
+                $this->getExpeditedReadyQueueList()->pushItem($queue->getQueueName());
+            }
             $this->getReadyQueueList()->pushItem($queue->getQueueName());
         };
 
@@ -61,9 +71,10 @@ class PumpPlugin extends AbstractPlugin
         $this->getEventDispatcher()->addListener(Job::EVENT_QUEUE,     $jobEventHandler);
         $this->getEventDispatcher()->addListener(Job::EVENT_MOVE,      $jobEventHandler);
         $this->getEventDispatcher()->addListener(Job::EVENT_UNPARK,    $jobEventHandler);
-        $this->getEventDispatcher()->addListener(Job::EVENT_COMPLETE,  $jobEventHandler);
-        $this->getEventDispatcher()->addListener(Job::EVENT_FAIL,      $jobEventHandler);
         $this->getEventDispatcher()->addListener(Job::EVENT_REQUEUE,   $jobEventHandler);
+
+        $this->getEventDispatcher()->addListener(Job::EVENT_COMPLETE,  $jobDoneEventHandler);
+        $this->getEventDispatcher()->addListener(Job::EVENT_FAIL,      $jobDoneEventHandler);
 
         $this->getEventDispatcher()->addListener(Queue::EVENT_UPDATE,  $queueEventHandler);
         $this->getEventDispatcher()->addListener(Queue::EVENT_RESUME,  $queueEventHandler);
@@ -306,6 +317,8 @@ while table.getn(jobs_pumped) < tonumber(ARGV[1]) and tonumber(redis.call('scard
       redis.call('hset', KEYS[4]..job_id, 'deliver_time', ARGV[3])
       table.insert(jobs_pumped, job_id)
     end
+  else
+    break
   end
 end
 return jobs_pumped
