@@ -437,6 +437,23 @@ class Worker implements WorkerInterface
     }
 
     /**
+     * Stop working on a job regardless of what state it's in
+     *
+     * @return boolean
+     */
+    public function abandonCurrentJob()
+    {
+        $this->getRedis()->openPipeline();
+        $this->getHash()->deleteField(self::FIELD_CURRENT_JOB);
+        $this->getHash()->deleteField(self::FIELD_CURRENT_QUEUE);
+        $this->getRedis()->closePipeline();
+
+        $this->currentJob = null;
+
+        return true;
+    }
+
+    /**
      * Tell the system we've recieved the job and are now working on it.
      *
      * @return boolean
