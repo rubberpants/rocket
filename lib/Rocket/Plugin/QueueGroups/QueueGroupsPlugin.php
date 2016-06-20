@@ -27,9 +27,11 @@ class QueueGroupsPlugin extends AbstractPlugin
 
         $this->getEventDispatcher()->addListener(Job::EVENT_QUEUE, function (JobEvent $event) {
             $this->addQueueGroupFromJob($event->getJob(), $event->getJob()->getQueueName());
+            $this->getGroupWaitingSet($event->getJob()->getGroupName())->addItem($event->getJob()->getId());
         });
 
         $this->getEventDispatcher()->addListener(Job::EVENT_START, function (JobEvent $event) {
+            $this->getGroupWaitingSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
             $this->getGroupRunningSet($event->getJob()->getGroupName())->addItem($event->getJob()->getId());
         });
 
@@ -42,6 +44,7 @@ class QueueGroupsPlugin extends AbstractPlugin
         });
 
         $this->getEventDispatcher()->addListener(Job::EVENT_DELETE, function (JobEvent $event) {
+            $this->getGroupWaitingSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
             $this->getGroupRunningSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
         });
 
@@ -70,6 +73,17 @@ class QueueGroupsPlugin extends AbstractPlugin
         $key = sprintf('GROUP_RUNNING_JOBS:%s', $group);
 
         return $this->getCachedObject('group_running_jobs', $key, function ($key) {
+            $set = $this->getRedis()->getSetType($key);
+
+            return $set;
+        });
+    }
+
+    public function getGroupWaitingSet($group)
+    {
+        $key = sprintf('GROUP_WAITING_JOBS:%s', $group);
+
+        return $this->getCachedObject('group_waiting_jobs', $key, function ($key) {
             $set = $this->getRedis()->getSetType($key);
 
             return $set;
@@ -135,6 +149,11 @@ class QueueGroupsPlugin extends AbstractPlugin
     public function getGroupRunningJobs($group)
     {
         return $this->getGroupRunningSet($group)->getItems();
+    }
+
+    public function getGroupWaitingJobs($group)
+    {
+        return $this->getGroupWaitingSet($group)->getItems();
     }
 
     public function reachedQueueGroupLimit(QueueInterface $queue)
