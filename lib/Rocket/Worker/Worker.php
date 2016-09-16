@@ -115,8 +115,6 @@ class Worker implements WorkerInterface
                     $this->getHash()->getField(self::FIELD_CURRENT_JOB),
                     $this->getHash()->getField(self::FIELD_CURRENT_QUEUE)
                 );
-            } else {
-                throw new RocketException('This worker does not have a current job');
             }
         }
 
@@ -279,10 +277,34 @@ class Worker implements WorkerInterface
             }
         }
 
-        if ($jobId = $this->getHash()->getField(self::FIELD_CURRENT_JOB)) {
-            $this->warning(sprintf('Worker already working on job %s', $jobId));
+        $jobId = $this->getHash()->getField(self::FIELD_CURRENT_JOB, true);
+        $queueName = $this->getHash()->getField(self::FIELD_CURRENT_QUEUE, true);
 
-            return true;
+        if ($jobId && $queueName) {
+
+            if ($job = $this->rocket->getJob($jobId)) {
+                if ($job->getStatus() != Job::STATUS_DELIVERED) {
+                    $this->warning(sprintf('Job %s status %s is not appropriate for worker', $jobId, $job->getStatus()));
+                } else if ($job->getWorkerName() == $this->getWorkerName()) {
+                    $this->warning(sprintf('Worker already working on job %s from queue %s', $jobId, $queueName));
+
+                    return true;
+                } else {
+                    $this->warning(sprintf('Job %s assigned to another worker %s', $jobId, $job->getWorkerName()));
+                }
+
+            } else {
+                $this->warning(sprintf('Job %s no longer exists', $jobId));
+            }
+
+            $this->getRedis()->openPipeline();
+            $this->getHash()->deleteField(self::FIELD_CURRENT_JOB);
+            $this->getHash()->deleteField(self::FIELD_CURRENT_QUEUE);
+            $this->getRedis()->closePipeline();
+
+            $this->currentJob = null;
+
+            return false;
         }
 
         $timeout = $timeout ?: $this->getConfig()->getWorkerJobWaitTimeout();
@@ -314,7 +336,7 @@ class Worker implements WorkerInterface
 
         $this->warning(sprintf('Job %s delivered to worker does not exist', $job));
 
-        throw new RocketException(sprintf('Job %s delivered to worker does not exist', $job));
+        return false;
     }
 
     /**

@@ -38,7 +38,9 @@ class WorkerTest extends BaseTest
 
     public function testGetNewJob()
     {
-        $worker = Harness::getInstance()->getWorker('Brain Guy');
+        $workerName = 'Brain Guy '.mt_rand(1,10000000);
+
+        $worker = Harness::getInstance()->getWorker($workerName);
 
         $queue = Harness::getInstance()->getNewQueue();
 
@@ -54,7 +56,7 @@ class WorkerTest extends BaseTest
 
         $this->assertTrue($worker->getNewJob('test', 'Elvis killed JFK'));
         $this->assertEquals(Job::STATUS_DELIVERED, $worker->getCurrentJob()->getStatus());
-        $this->assertEquals('Brain Guy', $worker->getCurrentJob()->getWorkerName());
+        $this->assertEquals($workerName, $worker->getCurrentJob()->getWorkerName());
         $this->assertEquals('test', $worker->getCurrentJob()->getType());
         $this->assertEquals($queue->getQueueName(), $worker->getCurrentQueueName());
         $this->assertEquals($worker->getCurrentJob()->getId(), $worker->getCurrentJobId());
@@ -72,7 +74,7 @@ class WorkerTest extends BaseTest
 
         $this->assertTrue($worker->startCurrentJob());
         $this->assertEquals(Job::STATUS_RUNNING, $worker->getCurrentJob()->getStatus());
-        $this->assertEquals('Brain Guy', $worker->getCurrentJob()->getWorkerName());
+        $this->assertEquals($workerName, $worker->getCurrentJob()->getWorkerName());
         $this->assertGreaterThan(0, $worker->getJobsStarted());
         $this->assertEquals(time(), $worker->getLastJobStart());
         $this->assertEventFired(Job::EVENT_START);
