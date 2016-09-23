@@ -18,7 +18,7 @@ class HashType extends BaseType implements \ArrayAccess
         }
 
         return $this->request(function ($client) use ($name) {
-            return $client->hexists($this->getKey(), $name);
+            return $client->hexists($this->getKey(), $name) ? true : false;
         });
     }
 

@@ -27,14 +27,14 @@ abstract class BaseType
     public function exists()
     {
         return $this->request(function () {
-            return $this->getClient()->exists($this->getKey());
+            return $this->getClient()->exists($this->getKey()) ? true : false;
         });
     }
 
     public function delete()
     {
         return $this->request(function () {
-            return $this->getClient()->del($this->getKey());
+            return $this->getClient()->del($this->getKey()) ? true : false;
         });
     }
 

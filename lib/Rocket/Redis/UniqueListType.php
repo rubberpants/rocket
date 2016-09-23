@@ -46,7 +46,7 @@ class UniqueListType extends BaseType
     public function hasItem($item)
     {
         return $this->request(function ($client) use ($item) {
-            return $client->sismember($this->getSetKey(), $item);
+            return $client->sismember($this->getSetKey(), $item) ? true : false;
         });
     }
 
@@ -92,7 +92,7 @@ class UniqueListType extends BaseType
         return $this->request(function () {
             $this->getClient()->del($this->getSetKey());
 
-            return $this->getClient()->del($this->getKey());
+            return $this->getClient()->del($this->getKey()) ? true : false;
         });
     }
 

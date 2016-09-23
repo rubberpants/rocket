@@ -7,7 +7,7 @@ class SetType extends BaseType
     public function hasItem($item)
     {
         return $this->request(function ($client) use ($item) {
-            return $client->sismember($this->getKey(), $item);
+            return $client->sismember($this->getKey(), $item) ? true : false;
         });
     }
 
