@@ -68,5 +68,8 @@ class StatisticsPluginTest extends BaseTest
             'failed' => '1',
             'deleted' => '1',
         ], array_shift($queueStats));
+
+        $this->assertEquals(20, count($this->getPlugin()->getPeriods(0, 20)));
+        $this->assertEquals(20, count($this->getPlugin()->getPeriods(20, 20)));
     }
 }

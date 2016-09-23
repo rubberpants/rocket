@@ -208,15 +208,23 @@ class StatisticsPlugin extends AbstractPlugin
         return time() - (time() % $this->periodSize);
     }
 
-    public function getAllPeriods()
+    public function getPeriods($startPeriod = null, $periodCount = null)
     {
+        if (is_null($startPeriod)) {
+            $startPeriod = 0;
+        }
+
+        if (is_null($periodCount)) {
+            $periodCount = $this->periodCount;
+        }
+
         $periods = [];
 
-        $period = $this->getCurrentPeriodStart();
+        $start = $this->getCurrentPeriodStart();
 
-        for ($i = 0; $i<$this->periodCount; $i++) {
+        for ($i = $startPeriod; $i<($startPeriod+$periodCount); $i++) {
+            $period = $start + ($i * $this->periodSize);
             $periods[] = $period;
-            $period -= $this->periodSize;
         }
 
         return $periods;
@@ -235,33 +243,33 @@ class StatisticsPlugin extends AbstractPlugin
         return $summed;
     }
 
-    public function getAllStatistics()
+    public function getAllStatistics($startPeriod = null, $periodCount = null)
     {
         $stats = [];
 
-        foreach ($this->getAllPeriods() as $period) {
+        foreach ($this->getPeriods($startPeriod, $periodCount) as $period) {
             $stats[$period] = $this->getAllStatsHash($period)->getFields();
         }
 
         return $stats;
     }
 
-    public function getQueueStatistics(QueueInterface $queue)
+    public function getQueueStatistics(QueueInterface $queue, $startPeriod = null, $periodCount = null)
     {
         $stats = [];
 
-        foreach ($this->getAllPeriods() as $period) {
+        foreach ($this->getPeriods($startPeriod, $periodCount) as $period) {
             $stats[$period] = $this->getQueueStatsHash($queue->getQueueName(), $period)->getFields();
         }
 
         return $stats;
     }
 
-    public function getJobTypeStatistics($jobType)
+    public function getJobTypeStatistics($jobType, $startPeriod = null, $periodCount = null)
     {
         $stats = [];
 
-        foreach ($this->getAllPeriods() as $period) {
+        foreach ($this->getPeriods($startPeriod, $periodCount) as $period) {
             $stats[$period] = $this->getJobTypeStatsHash($jobType, $period)->getFields();
         }
 
