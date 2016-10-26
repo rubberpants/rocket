@@ -111,10 +111,14 @@ class Worker implements WorkerInterface
     {
         if (is_null($this->currentJob)) {
             if ($this->getHash()->getField(self::FIELD_CURRENT_JOB) && $this->getHash()->getField(self::FIELD_CURRENT_QUEUE)) {
-                $this->currentJob = $this->rocket->getJob(
-                    $this->getHash()->getField(self::FIELD_CURRENT_JOB),
-                    $this->getHash()->getField(self::FIELD_CURRENT_QUEUE)
-                );
+                try {
+                    $this->currentJob = $this->rocket->getJob(
+                        $this->getHash()->getField(self::FIELD_CURRENT_JOB),
+                        $this->getHash()->getField(self::FIELD_CURRENT_QUEUE)
+                    );
+                } catch (RocketException $e) {
+                    $this->abandonCurrentJob();
+                }
             }
         }
 
