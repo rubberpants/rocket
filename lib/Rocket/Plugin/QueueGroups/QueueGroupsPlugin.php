@@ -43,6 +43,11 @@ class QueueGroupsPlugin extends AbstractPlugin
             $this->getGroupRunningSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
         });
 
+        $this->getEventDispatcher()->addListener(Job::EVENT_CANCEL, function (JobEvent $event) {
+            $this->getGroupWaitingSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
+            $this->getGroupRunningSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
+        });
+
         $this->getEventDispatcher()->addListener(Job::EVENT_DELETE, function (JobEvent $event) {
             $this->getGroupWaitingSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
             $this->getGroupRunningSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
