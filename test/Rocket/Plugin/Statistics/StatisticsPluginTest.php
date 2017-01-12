@@ -67,6 +67,7 @@ class StatisticsPluginTest extends BaseTest
             'completed' => '1',
             'failed' => '1',
             'deleted' => '1',
+            'run_seconds' => 0,
         ], array_shift($queueStats));
     }
 }
