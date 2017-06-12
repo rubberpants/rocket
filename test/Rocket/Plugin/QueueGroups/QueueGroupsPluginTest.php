@@ -36,6 +36,15 @@ class QueueGroupsPluginTest extends BaseTest
         $this->assertContains('group1', $this->getPlugin()->getGroups());
         $this->assertContains($queue->getQueueName(), $this->getPlugin()->getQueuesByGroup('group1'));
 
+        $this->getPlugin()->addQueueToBlockedSet($queue);
+        $this->assertContains($queue->getQueueName(), $this->getPlugin()->getGroupBlockedQueuesSet('group1')->getItems());
+
+        $this->getPlugin()->retryBlockedQueues('group1');
+
+        $this->assertNotContains($queue->getQueueName(), $this->getPlugin()->getGroupBlockedQueuesSet('group1')->getItems());
+
+        $this->assertContains($queue->getQueueName(), $this->getPlugin()->getRocket()->getPlugin('pump')->getReadyQueueList()->getItems());
+
         $job1->delete();
         $queue->delete();
 

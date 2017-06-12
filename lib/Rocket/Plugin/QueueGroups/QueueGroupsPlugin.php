@@ -37,15 +37,18 @@ class QueueGroupsPlugin extends AbstractPlugin
 
         $this->getEventDispatcher()->addListener(Job::EVENT_COMPLETE, function (JobEvent $event) {
             $this->getGroupRunningSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
+            $this->retryBlockedQueues($event->getJob()->getGroupName());
         });
 
         $this->getEventDispatcher()->addListener(Job::EVENT_FAIL, function (JobEvent $event) {
             $this->getGroupRunningSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
+            $this->retryBlockedQueues($event->getJob()->getGroupName());
         });
 
         $this->getEventDispatcher()->addListener(Job::EVENT_CANCEL, function (JobEvent $event) {
             $this->getGroupWaitingSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
             $this->getGroupRunningSet($event->getJob()->getGroupName())->deleteItem($event->getJob()->getId());
+            $this->retryBlockedQueues($event->getJob()->getGroupName());
         });
 
         $this->getEventDispatcher()->addListener(Job::EVENT_DELETE, function (JobEvent $event) {
@@ -58,6 +61,7 @@ class QueueGroupsPlugin extends AbstractPlugin
             if ($groupName = $this->getGroupForQueue($queueName)) {
                 $this->getGroupQueuesSet($groupName)->deleteItem($queueName);
                 $this->getGroupQueuesHash()->deleteField($queueName);
+                $this->getGroupBlockedQueuesSet($groupName)->deleteItem($queueName);
             }
         });
     }
@@ -89,6 +93,17 @@ class QueueGroupsPlugin extends AbstractPlugin
         $key = sprintf('GROUP_WAITING_JOBS:%s', $group);
 
         return $this->getCachedObject('group_waiting_jobs', $key, function ($key) {
+            $set = $this->getRedis()->getSetType($key);
+
+            return $set;
+        });
+    }
+
+    public function getGroupBlockedQueuesSet($group)
+    {
+        $key = sprintf('GROUP_BLOCKED_QUEUES:%s', $group);
+
+        return $this->getCachedObject('group_blocked_queues', $key, function ($key) {
             $set = $this->getRedis()->getSetType($key);
 
             return $set;
@@ -179,5 +194,20 @@ class QueueGroupsPlugin extends AbstractPlugin
         }
 
         return false;
+    }
+
+    public function addQueueToBlockedSet(QueueInterface $queue)
+    {
+        return $this->getGroupBlockedQueuesSet($this->getGroupForQueue($queue->getQueueName()))->addItem($queue->getQueueName());
+    }
+
+    public function retryBlockedQueues($group)
+    {
+        if ($plugin = $this->getRocket()->getPlugin('pump')) {
+            $readyQueueList = $plugin->getReadyQueueList();
+            while ($queueName = $this->getGroupBlockedQueuesSet($group)->popItem()) {
+                $readyQueueList->pushItem($queueName);
+            }
+        }
     }
 }

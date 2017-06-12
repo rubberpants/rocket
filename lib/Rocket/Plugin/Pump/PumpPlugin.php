@@ -231,6 +231,7 @@ class PumpPlugin extends AbstractPlugin
             /* NOTE: This concurrency limit is considered 'soft' in that it's not
                processed in an atomic way and race conditions can push it over. */
             if ($plugin->reachedQueueGroupLimit($queue)) {
+                $plugin->addQueueToBlockedSet($queue);
                 return [];
             }
         }
