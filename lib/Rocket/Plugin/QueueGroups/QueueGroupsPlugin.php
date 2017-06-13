@@ -205,7 +205,11 @@ class QueueGroupsPlugin extends AbstractPlugin
     {
         if ($plugin = $this->getRocket()->getPlugin('pump')) {
             $readyQueueList = $plugin->getReadyQueueList();
+            $queues = [];
             while ($queueName = $this->getGroupBlockedQueuesSet($group)->popItem()) {
+                $queues[] = $queueName;
+            }
+            foreach($queues as $queueName) {
                 $readyQueueList->pushItem($queueName);
             }
         }
